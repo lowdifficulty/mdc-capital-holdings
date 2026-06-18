@@ -65,3 +65,37 @@ h3 {
   animation: fade-up 0.7s ease-out 0.3s forwards;
   opacity: 0;
 }
+
+/* Hero blue texture layers */
+.hero-noise {
+  opacity: 0.045;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+.hero-blue-glow {
+  background:
+    radial-gradient(ellipse 75% 55% at 88% 8%, rgba(23, 105, 255, 0.42) 0%, transparent 62%),
+    radial-gradient(ellipse 45% 35% at 72% 28%, rgba(23, 105, 255, 0.18) 0%, transparent 70%);
+}
+
+.hero-blue-mesh {
+  -webkit-mask-image: radial-gradient(ellipse 72% 58% at 86% 14%, black 0%, transparent 72%);
+  mask-image: radial-gradient(ellipse 72% 58% at 86% 14%, black 0%, transparent 72%);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='0.75' fill='%23ffffff' fill-opacity='0.12'/%3E%3C/svg%3E");
+  background-size: 48px 48px, 48px 48px, 24px 24px;
+  opacity: 0.9;
+}
+
+.hero-blue-grain {
+  -webkit-mask-image: radial-gradient(ellipse 68% 52% at 84% 16%, black 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 68% 52% at 84% 16%, black 0%, transparent 75%);
+  opacity: 0.12;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}

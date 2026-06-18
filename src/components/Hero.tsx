@@ -29,7 +29,10 @@ export default function Hero({
     >
       {dark && (
         <>
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(23,105,255,0.18)_0%,_transparent_55%)]" />
+          <div className="pointer-events-none absolute inset-0 hero-blue-glow" />
+          <div className="pointer-events-none absolute inset-0 hero-blue-mesh" />
+          <div className="pointer-events-none absolute inset-0 hero-blue-grain" />
+          <div className="pointer-events-none absolute inset-0 hero-noise" />
           <div className="pointer-events-none absolute -left-32 top-20 h-96 w-96 rounded-full bg-mdc-blue/10 blur-3xl" />
         </>
       )}
