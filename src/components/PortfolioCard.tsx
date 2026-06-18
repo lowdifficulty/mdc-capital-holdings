@@ -63,7 +63,7 @@ export default function PortfolioCard({ company, variant = "grid" }: PortfolioCa
       </div>
       <div className="flex flex-1 flex-col p-6">
         <p className="flex-1 text-sm leading-relaxed text-slate">
-          {company.shortDescription}
+          {company.gridDescription}
         </p>
         <a
           href={company.website}

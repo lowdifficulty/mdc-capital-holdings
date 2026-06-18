@@ -5,6 +5,7 @@ export interface PortfolioCompany {
   category: string;
   industry: string;
   shortDescription: string;
+  gridDescription: string;
   longDescription: string;
   keyFocusAreas: string[];
   accentColor: string;
@@ -19,6 +20,8 @@ export const portfolioCompanies: PortfolioCompany[] = [
     industry: "Healthcare Distribution / Advanced Wound Care",
     shortDescription:
       "SMB Health Supply is a medical supply company focused on advanced wound care products for healthcare professionals treating acute and chronic wounds.",
+    gridDescription:
+      "Advanced wound care supply solutions for healthcare professionals, including amniotic skin grafts, collagen dressings, and complementary wound care products.",
     longDescription:
       "SMB Health Supply distributes advanced wound care products including amniotic skin grafts, collagen dressings, and complementary wound care supplies. The company supports medical practices and healthcare organizations with dependable product access, responsive fulfillment, and long-term supply partnerships.",
     keyFocusAreas: [
@@ -39,6 +42,8 @@ export const portfolioCompanies: PortfolioCompany[] = [
     industry: "Local Services / Mobile Pet Grooming",
     shortDescription:
       "Mobile Dog Salon is a mobile pet grooming company bringing professional grooming services directly to customers' driveways.",
+    gridDescription:
+      "A mobile pet grooming company delivering professional, one-on-one grooming services directly to customers across Orange County.",
     longDescription:
       "Mobile Dog Salon offers convenient, one-on-one mobile grooming for dogs and pets across Orange County. The business is built around comfort, convenience, safety, and a better customer experience for busy families, anxious pets, senior pet owners, and multi-pet households.",
     keyFocusAreas: [
@@ -60,6 +65,8 @@ export const portfolioCompanies: PortfolioCompany[] = [
     industry: "Music Technology / Web3 / Streaming",
     shortDescription:
       "LOWDIF is a music streaming and token platform built around Proof of Listen.",
+    gridDescription:
+      "A music streaming and token platform exploring Proof of Listen, listener rewards, artist payments, and tokenized engagement.",
     longDescription:
       "LOWDIF is developing a music streaming experience where completed listens can mint LOWDIF tokens and split value between listeners and artists. The platform explores a new model for music participation, artist rewards, listener incentives, and advertiser-driven token utility.",
     keyFocusAreas: [
@@ -81,6 +88,8 @@ export const portfolioCompanies: PortfolioCompany[] = [
     industry: "Digital Health / Online Care",
     shortDescription:
       "RX Center is a digital healthcare brand concept focused on simple online access to licensed-provider-led care.",
+    gridDescription:
+      "A digital healthcare brand concept focused on online access to licensed-provider-led care across modern wellness categories.",
     longDescription:
       "RX Center is positioned around online healthcare experiences for modern patients, including weight loss, peptides, men's health, women's health, and ongoing care management. The brand emphasizes convenience, online intake, provider review, transparent pricing, and care delivered around real life.",
     keyFocusAreas: [
