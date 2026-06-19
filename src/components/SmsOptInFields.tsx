@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { companyLegal } from "@/data/site";
 import { smsKeywordOptInNote, smsOptInCheckboxLabel } from "@/data/a2p";
 
 interface SmsOptInFieldsProps {
