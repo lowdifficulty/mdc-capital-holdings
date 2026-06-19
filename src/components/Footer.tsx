@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { portfolioCompanies } from "@/data/site";
+import { legalLinks, portfolioCompanies } from "@/data/site";
 
 export default function Footer() {
   return (
@@ -86,8 +86,20 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-16 border-t border-white/10 pt-8 text-sm text-white/50">
-          © 2026 MDC Capital Holdings. All rights reserved.
+        <div className="mt-16 flex flex-col gap-4 border-t border-white/10 pt-8 text-sm text-white/50 md:flex-row md:items-center md:justify-between">
+          <p>© 2026 MDC Capital Holdings. All rights reserved.</p>
+          <ul className="flex flex-wrap gap-x-6 gap-y-2">
+            {legalLinks.map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  className="transition-colors hover:text-white"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </footer>

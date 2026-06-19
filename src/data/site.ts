@@ -254,6 +254,19 @@ export const contactRoles = [
   "Other",
 ];
 
+export const companyLegal = {
+  name: "MDC Capital Holdings",
+  siteUrl: "https://mdccapitalholdings.com",
+  contactEmail: "hello@mdccapitalholdings.com",
+  smsProgramName: "MDC Capital Holdings SMS Program",
+  lastUpdated: "June 18, 2026",
+} as const;
+
+export const legalLinks = [
+  { href: "/privacy-policy", label: "Privacy Policy" },
+  { href: "/terms-and-conditions", label: "Terms & Conditions" },
+] as const;
+
 export const navLinks = [
   { href: "/", label: "Home" },
   { href: "/strategy", label: "Strategy" },
