@@ -100,7 +100,7 @@ We look for companies with real customer demand, strong service models, operatio
           </div>
           <div className="mt-12">
             <Link
-              href="/operating-platform"
+              href="/portfolio#operating-platform"
               className="inline-flex rounded-full bg-mdc-blue px-8 py-4 text-sm font-semibold text-white transition-all hover:bg-white hover:text-navy"
             >
               Explore Our Operating Platform

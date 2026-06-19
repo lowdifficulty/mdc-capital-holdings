@@ -17,9 +17,9 @@ export default function ContactPage() {
         body="Whether you are a founder, small business owner, operator, investor, or strategic partner, MDC Capital Holdings is interested in conversations with people building real businesses."
       />
 
-      <section className="pb-24 md:pb-32">
+      <section className="pt-8 pb-24 md:pt-11 md:pb-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-5">
+          <div className="grid gap-12 lg:grid-cols-5 lg:gap-16">
             <div className="lg:col-span-2">
               <h2 className="font-serif text-2xl text-navy md:text-3xl">
                 Start the conversation

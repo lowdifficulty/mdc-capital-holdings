@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import LegalDocument, { LegalLink, LegalSection } from "@/components/LegalDocument";
 import { companyLegal } from "@/data/site";
+import { smsTerms, smsMessageFlowDescription, smsKeywordOptInNote } from "@/data/a2p";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | MDC Capital Holdings",
@@ -9,7 +10,8 @@ export const metadata: Metadata = {
 };
 
 export default function TermsAndConditionsPage() {
-  const { name, siteUrl, contactEmail, smsProgramName, lastUpdated } = companyLegal;
+  const { name, siteUrl, contactEmail, businessPhoneDisplay, smsProgramName, lastUpdated } =
+    companyLegal;
 
   return (
     <LegalDocument
@@ -46,20 +48,25 @@ export default function TermsAndConditionsPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="SMS Terms">
+        <p>{smsTerms}</p>
+      </LegalSection>
+
       <LegalSection title="SMS text messaging program">
         <p>
           {name} offers an optional {smsProgramName}. By checking the SMS consent box on
-          our contact form and providing your mobile phone number, you expressly consent to
-          receive recurring automated text messages from {name} at the number provided.
+          our website forms and providing your mobile phone number, or by texting START to{" "}
+          {businessPhoneDisplay}, you expressly consent to receive recurring automated text
+          messages from {name} at the number provided.
         </p>
         <p>
           <strong className="text-navy">Types of messages</strong> may include inquiry
-          confirmations, follow-up about partnership or acquisition discussions, meeting
-          reminders, and other business-related updates related to your relationship with{" "}
-          {name}.
+          confirmations, follow-up about partnership or acquisition discussions, scheduling
+          updates, meeting reminders, business updates, and other business-related
+          communications related to your relationship with {name}.
         </p>
         <p>
-          <strong className="text-navy">Message frequency</strong> varies depending on your
+          <strong className="text-navy">Message frequency</strong> may vary depending on your
           inquiry and interactions with us. You may receive multiple messages during an
           active conversation and fewer messages when there is no ongoing discussion.
         </p>
@@ -68,16 +75,20 @@ export default function TermsAndConditionsPage() {
           with your wireless carrier for details about your text and data plan.
         </p>
         <p>
-          <strong className="text-navy">Consent is not a condition of purchase</strong> and
-          is not required to submit a contact form or receive a response by email or phone.
-          SMS opt-in is optional and requires a separate, unchecked consent box on our web
-          form.
+          <strong className="text-navy">
+            Consent to receive SMS messages is not a condition of purchase or investment
+          </strong>{" "}
+          and is not required to submit a contact form or receive a response by email or
+          phone. SMS opt-in is optional and requires a separate, unchecked consent box on
+          our web forms.
         </p>
       </LegalSection>
 
-      <LegalSection title="Opt-in method">
+      <LegalSection title="Opt-in methods">
+        <p>{smsMessageFlowDescription}</p>
+        <p>{smsKeywordOptInNote}</p>
         <p>
-          We obtain SMS consent through our website contact form at{" "}
+          Web form opt-in is available at{" "}
           <LegalLink href="/contact">{siteUrl.replace("https://", "")}/contact</LegalLink>.
           Consent requires:
         </p>
@@ -88,9 +99,14 @@ export default function TermsAndConditionsPage() {
             {name}
           </li>
           <li>
-            Disclosure that message frequency varies and message and data rates may apply
+            Disclosure that message and data rates may apply and message frequency may vary
           </li>
           <li>Instructions to reply STOP to opt out and HELP for help</li>
+          <li>
+            Disclosure that SMS consent is not a condition of purchase or investment and that
+            mobile numbers and SMS opt-in consent are not sold or shared with third parties
+            or affiliates for marketing or promotional purposes
+          </li>
           <li>
             Links to this Terms page and our{" "}
             <LegalLink href="/privacy-policy">Privacy Policy</LegalLink>
@@ -125,8 +141,8 @@ export default function TermsAndConditionsPage() {
           and SMS opt-in data, is described in our{" "}
           <LegalLink href="/privacy-policy">Privacy Policy</LegalLink>.{" "}
           <strong className="text-navy">
-            No mobile information will be shared with third parties or affiliates for
-            marketing or promotional purposes.
+            {name} does not sell, rent, or share mobile phone numbers or SMS opt-in consent
+            with third parties or affiliates for marketing or promotional purposes.
           </strong>
         </p>
       </LegalSection>

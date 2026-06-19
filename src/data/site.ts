@@ -2,6 +2,7 @@ export interface PortfolioCompany {
   id: string;
   name: string;
   website: string;
+  logoSrc: string;
   category: string;
   industry: string;
   shortDescription: string;
@@ -16,6 +17,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     id: "smb-health-supply",
     name: "SMB Health Supply",
     website: "https://smbhealthsupply.com/",
+    logoSrc: "/portfolio/smb-health-supply.png",
     category: "Healthcare Distribution",
     industry: "Healthcare Distribution / Advanced Wound Care",
     shortDescription:
@@ -38,6 +40,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     id: "mobile-dog-salon",
     name: "Mobile Dog Salon",
     website: "https://mobiledog-salon.com/",
+    logoSrc: "/portfolio/mobile-dog-salon.png",
     category: "Mobile Pet Services",
     industry: "Local Services / Mobile Pet Grooming",
     shortDescription:
@@ -61,6 +64,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     id: "lowdif",
     name: "LOWDIF",
     website: "https://lowdif.com/",
+    logoSrc: "/portfolio/lowdif.svg",
     category: "Music Technology",
     industry: "Music Technology / Web3 / Streaming",
     shortDescription:
@@ -84,6 +88,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     id: "rx-center",
     name: "RX Center",
     website: "https://rx.center/",
+    logoSrc: "/portfolio/rx-center.png",
     category: "Digital Health",
     industry: "Digital Health / Online Care",
     shortDescription:
@@ -258,6 +263,8 @@ export const companyLegal = {
   name: "MDC Capital Holdings",
   siteUrl: "https://mdccapitalholdings.com",
   contactEmail: "hello@mdccapitalholdings.com",
+  businessPhone: "+19497558994",
+  businessPhoneDisplay: "(949) 755-8994",
   smsProgramName: "MDC Capital Holdings SMS Program",
   lastUpdated: "June 18, 2026",
 } as const;
@@ -271,7 +278,6 @@ export const navLinks = [
   { href: "/", label: "Home" },
   { href: "/strategy", label: "Strategy" },
   { href: "/portfolio", label: "Portfolio" },
-  { href: "/operating-platform", label: "Operating Platform" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];

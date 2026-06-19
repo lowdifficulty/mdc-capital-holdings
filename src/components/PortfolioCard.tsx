@@ -5,20 +5,32 @@ interface PortfolioCardProps {
   variant?: "grid" | "detailed";
 }
 
+function PortfolioLogo({ company }: { company: PortfolioCompany }) {
+  return (
+    <div className="flex h-16 max-w-[220px] items-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={company.logoSrc}
+        alt={`${company.name} logo`}
+        className="h-auto max-h-16 w-auto max-w-full object-contain object-left"
+      />
+    </div>
+  );
+}
+
 export default function PortfolioCard({ company, variant = "grid" }: PortfolioCardProps) {
   if (variant === "detailed") {
     return (
       <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-navy/8 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/30 hover:shadow-xl">
-        <div
-          className="h-2 w-full"
-          style={{ backgroundColor: company.accentColor }}
-        />
-        <div className="flex flex-1 flex-col p-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-mdc-blue">
+        <div className="bg-light-gray px-8 pb-6 pt-8">
+          <PortfolioLogo company={company} />
+          <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-mdc-blue">
             {company.industry}
           </p>
           <h3 className="mt-3 font-serif text-2xl text-navy">{company.name}</h3>
-          <p className="mt-4 text-sm leading-relaxed text-slate">
+        </div>
+        <div className="flex flex-1 flex-col p-8 pt-6">
+          <p className="text-sm leading-relaxed text-slate">
             {company.shortDescription}
           </p>
           <p className="mt-4 flex-1 text-sm leading-relaxed text-slate/90">
@@ -48,18 +60,12 @@ export default function PortfolioCard({ company, variant = "grid" }: PortfolioCa
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-navy/8 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/30 hover:shadow-xl">
-      <div
-        className="flex h-40 items-end p-6"
-        style={{
-          background: `linear-gradient(135deg, ${company.accentColor}22 0%, ${company.accentColor}08 100%)`,
-        }}
-      >
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-mdc-blue">
-            {company.category}
-          </p>
-          <h3 className="mt-2 font-serif text-2xl text-navy">{company.name}</h3>
-        </div>
+      <div className="flex min-h-40 flex-col justify-end bg-light-gray p-6">
+        <PortfolioLogo company={company} />
+        <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-mdc-blue">
+          {company.category}
+        </p>
+        <h3 className="mt-2 font-serif text-2xl text-navy">{company.name}</h3>
       </div>
       <div className="flex flex-1 flex-col p-6">
         <p className="flex-1 text-sm leading-relaxed text-slate">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import LegalDocument, { LegalLink, LegalSection } from "@/components/LegalDocument";
 import { companyLegal } from "@/data/site";
+import { smsPrivacyNotice, smsMessageFlowDescription } from "@/data/a2p";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | MDC Capital Holdings",
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPolicyPage() {
-  const { name, siteUrl, contactEmail, smsProgramName, lastUpdated } = companyLegal;
+  const { name, siteUrl, contactEmail, businessPhoneDisplay, lastUpdated } = companyLegal;
 
   return (
     <LegalDocument
@@ -63,8 +64,8 @@ export default function PrivacyPolicyPage() {
         <p>
           We do not sell your personal information.{" "}
           <strong className="text-navy">
-            No mobile information will be shared with third parties or affiliates for
-            marketing or promotional purposes.
+            {name} does not sell, rent, or share mobile phone numbers or SMS opt-in consent
+            with third parties or affiliates for marketing or promotional purposes.
           </strong>{" "}
           Information shared with service providers is limited to what is necessary to
           deliver our services (for example, sending SMS messages through our messaging
@@ -72,17 +73,34 @@ export default function PrivacyPolicyPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="SMS Privacy Notice">
+        {smsPrivacyNotice.split("\n\n").map((paragraph) => (
+          <p key={paragraph.slice(0, 40)}>{paragraph}</p>
+        ))}
+      </LegalSection>
+
+      <LegalSection title="How we obtain SMS consent">
+        <p>{smsMessageFlowDescription}</p>
+        <p>
+          You may opt in through our{" "}
+          <LegalLink href="/contact">contact form</LegalLink> or by texting{" "}
+          <strong className="text-navy">START</strong> to {businessPhoneDisplay}.
+        </p>
+      </LegalSection>
+
       <LegalSection title="SMS text messaging">
         <p>
-          If you opt in to our {smsProgramName} by checking the consent box on our contact
-          form and providing your mobile phone number, we may send you text messages related
-          to your inquiry and our business relationship. Message frequency varies. Message
-          and data rates may apply.
+          If you opt in by checking the consent box on our website forms and providing your
+          mobile phone number, or by texting START to {businessPhoneDisplay}, we may send
+          you text messages related to your inquiry and our business relationship. Message
+          frequency may vary. Message and data rates may apply.
         </p>
         <p>
-          <strong className="text-navy">Consent is not a condition of purchase</strong> and
-          is not required to submit a contact inquiry. You may opt in to SMS separately by
-          checking the consent box when you provide your phone number.
+          <strong className="text-navy">
+            Consent to receive SMS messages is not a condition of purchase or investment
+          </strong>{" "}
+          and is not required to submit a contact inquiry. You may opt in to SMS separately
+          by checking the consent box when you provide your phone number.
         </p>
         <p>
           You can opt out at any time by replying <strong className="text-navy">STOP</strong>{" "}

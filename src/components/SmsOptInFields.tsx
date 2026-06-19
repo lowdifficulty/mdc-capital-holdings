@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { companyLegal } from "@/data/site";
+import { smsKeywordOptInNote, smsOptInCheckboxLabel } from "@/data/a2p";
 
 interface SmsOptInFieldsProps {
   phone: string;
@@ -43,11 +44,7 @@ export default function SmsOptInFields({
           className="mt-0.5 h-4 w-4 shrink-0 rounded border-navy/20 text-mdc-blue focus:ring-mdc-blue/30"
         />
         <span className="text-sm leading-relaxed text-slate">
-          I agree to receive SMS messages from {companyLegal.name} at the phone number
-          provided above. Message frequency varies. Message and data rates may apply. Reply{" "}
-          <strong className="font-medium text-navy">STOP</strong> to opt out or{" "}
-          <strong className="font-medium text-navy">HELP</strong> for help. Consent is not
-          required to submit this form. See our{" "}
+          {smsOptInCheckboxLabel} See our{" "}
           <Link href="/privacy-policy" className="font-medium text-mdc-blue hover:text-navy">
             Privacy Policy
           </Link>{" "}
@@ -58,10 +55,14 @@ export default function SmsOptInFields({
           >
             Terms &amp; Conditions
           </Link>
-          . No mobile information will be shared with third parties or affiliates for
-          marketing or promotional purposes.
+          .
         </span>
       </label>
+
+      <p className="text-xs leading-relaxed text-slate">
+        {smsKeywordOptInNote} Message and data rates may apply. Reply STOP to opt out or HELP
+        for help.
+      </p>
     </div>
   );
 }
