@@ -3,6 +3,8 @@ export interface PortfolioCompany {
   name: string;
   website: string;
   logoSrc: string;
+  imageSrc: string;
+  imageAlt: string;
   category: string;
   industry: string;
   shortDescription: string;
@@ -12,12 +14,29 @@ export interface PortfolioCompany {
   accentColor: string;
 }
 
+export const siteImages = {
+  healthcare:
+    "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1400&q=80&auto=format&fit=crop",
+  digitalHealth:
+    "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1400&q=80&auto=format&fit=crop",
+  homeServices:
+    "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1400&q=80&auto=format&fit=crop",
+  startupTech:
+    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1400&q=80&auto=format&fit=crop",
+  operations:
+    "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1400&q=80&auto=format&fit=crop",
+  localService:
+    "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1400&q=80&auto=format&fit=crop",
+} as const;
+
 export const portfolioCompanies: PortfolioCompany[] = [
   {
     id: "smb-health-supply",
     name: "SMB Health Supply",
     website: "https://smbhealthsupply.com/",
     logoSrc: "/portfolio/smb-health-supply.png",
+    imageSrc: "/portfolio/smb-health-hero.jpg",
+    imageAlt: "SMB Health Supply advanced wound care products",
     category: "Healthcare Distribution",
     industry: "Healthcare Distribution / Advanced Wound Care",
     shortDescription:
@@ -37,34 +56,39 @@ export const portfolioCompanies: PortfolioCompany[] = [
     accentColor: "#1769FF",
   },
   {
-    id: "mobile-dog-salon",
-    name: "Mobile Dog Salon",
-    website: "https://mobiledog-salon.com/",
-    logoSrc: "/portfolio/mobile-dog-salon.png",
-    category: "Mobile Pet Services",
-    industry: "Local Services / Mobile Pet Grooming",
+    id: "rx-center",
+    name: "RX Center",
+    website: "https://rx.center/",
+    logoSrc: "/portfolio/rx-center.png",
+    imageSrc: "/portfolio/rx-center-hero.png",
+    imageAlt: "RX Center online healthcare and wellness care",
+    category: "Digital Health",
+    industry: "Digital Health / Online Care",
     shortDescription:
-      "Mobile Dog Salon is a mobile pet grooming company bringing professional grooming services directly to customers' driveways.",
+      "RX Center is a digital healthcare brand concept focused on simple online access to licensed-provider-led care.",
     gridDescription:
-      "A mobile pet grooming company delivering professional, one-on-one grooming services directly to customers across Orange County.",
+      "A digital healthcare brand concept focused on online access to licensed-provider-led care across modern wellness categories.",
     longDescription:
-      "Mobile Dog Salon offers convenient, one-on-one mobile grooming for dogs and pets across Orange County. The business is built around comfort, convenience, safety, and a better customer experience for busy families, anxious pets, senior pet owners, and multi-pet households.",
+      "RX Center is positioned around online healthcare experiences for modern patients, including weight loss, peptides, men's health, women's health, and ongoing care management. The brand emphasizes convenience, online intake, provider review, transparent pricing, and care delivered around real life.",
     keyFocusAreas: [
-      "Mobile dog grooming",
-      "Pet bathing and washing",
-      "Nail trimming",
-      "Deshedding",
-      "One-on-one curbside service",
-      "Orange County local service expansion",
-      "Groomer recruiting and van-based operations",
+      "Online healthcare",
+      "Licensed-provider-led care",
+      "Weight loss programs",
+      "Men's health",
+      "Women's health",
+      "Peptides and longevity",
+      "Patient portal experience",
+      "Cash-pay healthcare model",
     ],
-    accentColor: "#0EA5E9",
+    accentColor: "#059669",
   },
   {
     id: "lowdif",
     name: "LOWDIF",
     website: "https://lowdif.com/",
     logoSrc: "/portfolio/lowdif.svg",
+    imageSrc: siteImages.startupTech,
+    imageAlt: "Startup technology team collaborating",
     category: "Music Technology",
     industry: "Music Technology / Web3 / Streaming",
     shortDescription:
@@ -85,29 +109,30 @@ export const portfolioCompanies: PortfolioCompany[] = [
     accentColor: "#6366F1",
   },
   {
-    id: "rx-center",
-    name: "RX Center",
-    website: "https://rx.center/",
-    logoSrc: "/portfolio/rx-center.png",
-    category: "Digital Health",
-    industry: "Digital Health / Online Care",
+    id: "mobile-dog-salon",
+    name: "Mobile Dog Salon",
+    website: "https://mobiledog-salon.com/",
+    logoSrc: "/portfolio/mobile-dog-salon.png",
+    imageSrc: "/portfolio/mobile-dog-salon-hero.jpg",
+    imageAlt: "Mobile Dog Salon groomers providing curbside pet grooming",
+    category: "Mobile Pet Services",
+    industry: "Local Services / Mobile Pet Grooming",
     shortDescription:
-      "RX Center is a digital healthcare brand concept focused on simple online access to licensed-provider-led care.",
+      "Mobile Dog Salon is a mobile pet grooming company bringing professional grooming services directly to customers' driveways.",
     gridDescription:
-      "A digital healthcare brand concept focused on online access to licensed-provider-led care across modern wellness categories.",
+      "A mobile pet grooming company delivering professional, one-on-one grooming services directly to customers across Orange County.",
     longDescription:
-      "RX Center is positioned around online healthcare experiences for modern patients, including weight loss, peptides, men's health, women's health, and ongoing care management. The brand emphasizes convenience, online intake, provider review, transparent pricing, and care delivered around real life.",
+      "Mobile Dog Salon offers convenient, one-on-one mobile grooming for dogs and pets across Orange County. The business is built around comfort, convenience, safety, and a better customer experience for busy families, anxious pets, senior pet owners, and multi-pet households.",
     keyFocusAreas: [
-      "Online healthcare",
-      "Licensed-provider-led care",
-      "Weight loss programs",
-      "Men's health",
-      "Women's health",
-      "Peptides and longevity",
-      "Patient portal experience",
-      "Cash-pay healthcare model",
+      "Mobile dog grooming",
+      "Pet bathing and washing",
+      "Nail trimming",
+      "Deshedding",
+      "One-on-one curbside service",
+      "Orange County local service expansion",
+      "Groomer recruiting and van-based operations",
     ],
-    accentColor: "#059669",
+    accentColor: "#0EA5E9",
   },
 ];
 
@@ -188,22 +213,32 @@ export const investmentThemes = [
   {
     title: "Healthcare Services & Distribution",
     body: "We look for healthcare businesses with real provider or patient demand, recurring operational needs, and opportunities to improve access, fulfillment, communication, and compliance-aware growth.",
+    imageSrc: siteImages.healthcare,
+    imageAlt: "Healthcare services and medical distribution",
   },
   {
     title: "Local Services",
     body: "Local service businesses can become highly valuable when they have strong customer demand, repeatable operations, reliable staffing, and modern customer acquisition systems.",
+    imageSrc: siteImages.localService,
+    imageAlt: "Local home and mobile service business",
   },
   {
     title: "Digital Health",
     body: "We are interested in healthcare experiences that make care easier to access, easier to understand, and easier to manage through technology and licensed-provider-led models.",
+    imageSrc: siteImages.digitalHealth,
+    imageAlt: "Digital health and online patient care",
   },
   {
     title: "Music, Media & Technology",
     body: "MDC supports digital platforms that rethink how creators, customers, and communities exchange value.",
+    imageSrc: siteImages.startupTech,
+    imageAlt: "Startup technology and creator platforms",
   },
   {
     title: "AI-Enabled Operations",
     body: "We believe small businesses can benefit from AI and automation when it is applied practically: faster follow-up, cleaner workflows, better reporting, smarter routing, and improved customer experience.",
+    imageSrc: siteImages.operations,
+    imageAlt: "Technology-enabled business operations",
   },
 ];
 
@@ -248,15 +283,6 @@ export const principles = [
     title: "Brand matters",
     body: "Great small businesses deserve brands, websites, and customer experiences that match the quality of the service.",
   },
-];
-
-export const contactRoles = [
-  "Business owner",
-  "Founder",
-  "Investor",
-  "Operator",
-  "Strategic partner",
-  "Other",
 ];
 
 export const companyLegal = {

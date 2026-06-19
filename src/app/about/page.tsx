@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Hero from "@/components/Hero";
 import SectionHeading from "@/components/SectionHeading";
-import CTASection from "@/components/CTASection";
-import { principles } from "@/data/site";
+import SectionPhoto from "@/components/SectionPhoto";
+import { principles, siteImages } from "@/data/site";
 
 export const metadata: Metadata = {
   title: "About | MDC Capital Holdings",
@@ -23,12 +23,19 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <SectionHeading headline="Built for operators, founders, and owners who think long term." />
-            <p className="text-base leading-relaxed text-slate md:text-lg">
-              MDC brings together business building, digital marketing, technology,
-              finance, and hands-on operating experience. Our role is to help companies
-              become more durable, more scalable, and more valuable without losing the
-              practical customer focus that made them work in the first place.
-            </p>
+            <div className="space-y-8">
+              <SectionPhoto
+                src={siteImages.operations}
+                alt="Leadership team planning long-term business growth"
+                className="aspect-[16/10]"
+              />
+              <p className="text-base leading-relaxed text-slate md:text-lg">
+                MDC brings together business building, digital marketing, technology,
+                finance, and hands-on operating experience. Our role is to help companies
+                become more durable, more scalable, and more valuable without losing the
+                practical customer focus that made them work in the first place.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -62,16 +69,6 @@ export default function AboutPage() {
           </p>
         </div>
       </section>
-
-      <CTASection
-        dark
-        headline="Let's build something that lasts."
-        body="We are interested in conversations with founders, operators, and business owners who care about what happens after the transaction."
-        primaryLabel="Partner With Us"
-        primaryHref="/contact"
-        secondaryLabel="View Our Portfolio"
-        secondaryHref="/portfolio"
-      />
     </>
   );
 }

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { PortfolioCompany } from "@/data/site";
 
 interface PortfolioCardProps {
@@ -18,10 +19,26 @@ function PortfolioLogo({ company }: { company: PortfolioCompany }) {
   );
 }
 
+function PortfolioImage({ company }: { company: PortfolioCompany }) {
+  return (
+    <div className="relative h-44 w-full overflow-hidden">
+      <Image
+        src={company.imageSrc}
+        alt={company.imageAlt}
+        fill
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className="object-cover transition-transform duration-500 group-hover:scale-105"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-navy/55 via-navy/10 to-transparent" />
+    </div>
+  );
+}
+
 export default function PortfolioCard({ company, variant = "grid" }: PortfolioCardProps) {
   if (variant === "detailed") {
     return (
       <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-navy/8 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/30 hover:shadow-xl">
+        <PortfolioImage company={company} />
         <div className="bg-light-gray px-8 pb-6 pt-8">
           <PortfolioLogo company={company} />
           <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-mdc-blue">
@@ -60,6 +77,7 @@ export default function PortfolioCard({ company, variant = "grid" }: PortfolioCa
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-navy/8 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/30 hover:shadow-xl">
+      <PortfolioImage company={company} />
       <div className="flex min-h-40 flex-col justify-end bg-light-gray p-6">
         <PortfolioLogo company={company} />
         <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-mdc-blue">

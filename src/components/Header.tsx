@@ -59,13 +59,6 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Link
-            href="/contact"
-            className="hidden rounded-full bg-mdc-blue px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white hover:text-navy sm:inline-flex"
-          >
-            Partner With Us
-          </Link>
-
           <button
             type="button"
             aria-label="Toggle menu"
@@ -103,12 +96,6 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/contact"
-              className="mt-2 inline-flex rounded-full bg-mdc-blue px-5 py-3 text-center text-sm font-semibold text-white"
-            >
-              Partner With Us
-            </Link>
           </nav>
         </div>
       )}

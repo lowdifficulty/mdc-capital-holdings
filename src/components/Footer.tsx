@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="bg-navy text-white">
       <div className="border-b border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 px-6 py-16 lg:flex-row lg:items-center lg:px-8">
+        <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
           <div className="max-w-xl">
             <h2 className="font-serif text-3xl tracking-tight md:text-4xl">
               Build With MDC
@@ -15,12 +15,6 @@ export default function Footer() {
               bring long-term operating support to businesses with real demand.
             </p>
           </div>
-          <Link
-            href="/contact"
-            className="inline-flex rounded-full bg-mdc-blue px-8 py-4 text-sm font-semibold text-white transition-all hover:bg-white hover:text-navy"
-          >
-            Start the Conversation
-          </Link>
         </div>
       </div>
 

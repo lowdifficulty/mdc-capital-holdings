@@ -3,8 +3,8 @@ import Hero from "@/components/Hero";
 import SectionHeading from "@/components/SectionHeading";
 import PortfolioCard from "@/components/PortfolioCard";
 import OperatingCapabilityCard from "@/components/OperatingCapabilityCard";
-import CTASection from "@/components/CTASection";
-import { operatingCapabilities, portfolioCompanies } from "@/data/site";
+import SectionPhoto from "@/components/SectionPhoto";
+import { operatingCapabilities, portfolioCompanies, siteImages } from "@/data/site";
 
 export const metadata: Metadata = {
   title: "Portfolio | MDC Capital Holdings",
@@ -23,7 +23,29 @@ export default function PortfolioPage() {
 
       <section className="py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <SectionHeading headline="Portfolio" />
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+            <SectionHeading headline="Portfolio" />
+            <div className="grid grid-cols-3 gap-3">
+              <SectionPhoto
+                src={siteImages.healthcare}
+                alt="Healthcare sector"
+                className="aspect-square"
+                sizes="200px"
+              />
+              <SectionPhoto
+                src={siteImages.homeServices}
+                alt="Home services sector"
+                className="aspect-square"
+                sizes="200px"
+              />
+              <SectionPhoto
+                src={siteImages.startupTech}
+                alt="Technology sector"
+                className="aspect-square"
+                sizes="200px"
+              />
+            </div>
+          </div>
           <div className="mt-14 grid gap-8 md:grid-cols-2">
             {portfolioCompanies.map((company) => (
               <PortfolioCard key={company.id} company={company} variant="grid" />
@@ -71,15 +93,6 @@ export default function PortfolioPage() {
           </p>
         </div>
       </section>
-
-      <CTASection
-        headline="Building something in one of these sectors?"
-        body="MDC partners with founders and operators who want long-term support across marketing, technology, operations, and growth."
-        primaryLabel="Partner With Us"
-        primaryHref="/contact"
-        secondaryLabel="Explore Our Strategy"
-        secondaryHref="/strategy"
-      />
     </>
   );
 }

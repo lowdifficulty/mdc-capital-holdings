@@ -1,16 +1,16 @@
-import Link from "next/link";
 import Hero from "@/components/Hero";
 import SectionHeading from "@/components/SectionHeading";
 import PortfolioCard from "@/components/PortfolioCard";
 import OperatingCapabilityCard from "@/components/OperatingCapabilityCard";
 import SituationsSection from "@/components/SituationsSection";
-import CTASection from "@/components/CTASection";
 import {
   portfolioCompanies,
   whatWeDoCards,
   operatingCapabilities,
   whatWeLookFor,
+  siteImages,
 } from "@/data/site";
+import SectionPhoto from "@/components/SectionPhoto";
 
 export default function HomePage() {
   return (
@@ -18,39 +18,53 @@ export default function HomePage() {
       <Hero
         headline="We build and grow small businesses for the long term."
         body="MDC Capital Holdings is an operating holdings company focused on building, acquiring, and scaling durable businesses across healthcare, local services, digital platforms, and technology."
-        primaryCta={{ label: "View Our Portfolio", href: "/portfolio" }}
-        secondaryCta={{ label: "Partner With Us", href: "/contact" }}
         supportingLine="We combine capital, operational execution, marketing infrastructure, technology, and founder-level focus to help companies grow beyond the limits of traditional small business ownership."
       />
 
       <section className="py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <SectionHeading
-            eyebrow="Permanent Operating Capital"
-            headline="Our long-term outlook sets us apart."
-            body="MDC Capital Holdings was built for operators, founders, and small business owners who care about what happens after the transaction. We are not short-term financial buyers. We are builders. We invest our time, systems, capital, and operating experience into businesses we believe can compound over years.
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <SectionHeading
+              eyebrow="Permanent Operating Capital"
+              headline="Our long-term outlook sets us apart."
+              body="MDC Capital Holdings was built for operators, founders, and small business owners who care about what happens after the transaction. We are not short-term financial buyers. We are builders. We invest our time, systems, capital, and operating experience into businesses we believe can compound over years.
 
 We look for companies with real customer demand, strong service models, operational upside, and room to scale through better marketing, technology, systems, and leadership."
-          />
+            />
+            <SectionPhoto
+              src={siteImages.operations}
+              alt="Operating team collaborating on business growth"
+              className="aspect-[5/4] lg:aspect-square"
+            />
+          </div>
         </div>
       </section>
 
       <section className="bg-light-gray py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <SectionHeading
-            headline="We help companies grow with hands-on operating support."
-            body="No two companies are alike. MDC Capital Holdings works across a focused group of operating businesses and digital platforms, matching our involvement to each company's stage, opportunity, and needs."
-          />
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {whatWeDoCards.map((card) => (
-              <article
-                key={card.title}
-                className="rounded-2xl border border-navy/8 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/25 hover:shadow-lg"
-              >
-                <h3 className="font-serif text-2xl text-navy">{card.title}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-slate">{card.body}</p>
-              </article>
-            ))}
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <SectionPhoto
+              src={siteImages.localService}
+              alt="Mobile service business serving customers at home"
+              className="aspect-[4/3] order-2 lg:order-1"
+            />
+            <div className="order-1 lg:order-2">
+              <SectionHeading
+                headline="We help companies grow with hands-on operating support."
+                body="No two companies are alike. MDC Capital Holdings works across a focused group of operating businesses and digital platforms, matching our involvement to each company's stage, opportunity, and needs."
+              />
+              <div className="mt-14 grid gap-6 sm:grid-cols-2">
+                {whatWeDoCards.map((card) => (
+                  <article
+                    key={card.title}
+                    className="rounded-2xl border border-navy/8 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/25 hover:shadow-lg"
+                  >
+                    <h3 className="font-serif text-2xl text-navy">{card.title}</h3>
+                    <p className="mt-4 text-sm leading-relaxed text-slate">{card.body}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -68,14 +82,6 @@ We look for companies with real customer demand, strong service models, operatio
             {portfolioCompanies.map((company) => (
               <PortfolioCard key={company.id} company={company} variant="detailed" />
             ))}
-          </div>
-          <div className="mt-12 text-center">
-            <Link
-              href="/portfolio"
-              className="inline-flex rounded-full border border-navy/15 px-8 py-4 text-sm font-semibold text-navy transition-all hover:border-mdc-blue hover:text-mdc-blue"
-            >
-              View Full Portfolio
-            </Link>
           </div>
         </div>
       </section>
@@ -98,26 +104,18 @@ We look for companies with real customer demand, strong service models, operatio
               />
             ))}
           </div>
-          <div className="mt-12">
-            <Link
-              href="/portfolio#operating-platform"
-              className="inline-flex rounded-full bg-mdc-blue px-8 py-4 text-sm font-semibold text-white transition-all hover:bg-white hover:text-navy"
-            >
-              Explore Our Operating Platform
-            </Link>
-          </div>
         </div>
       </section>
 
       <section className="py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-start">
-            <SectionHeading
-              headline="We invest where better operations can unlock better outcomes."
-              body="MDC Capital Holdings focuses on small businesses and digital platforms where demand already exists but execution can be improved."
-            />
             <div>
-              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-mdc-blue">
+              <SectionHeading
+                headline="We invest where better operations can unlock better outcomes."
+                body="MDC Capital Holdings focuses on small businesses and digital platforms where demand already exists but execution can be improved."
+              />
+              <p className="mb-4 mt-8 text-xs font-semibold uppercase tracking-widest text-mdc-blue">
                 What we look for
               </p>
               <ul className="grid gap-3 sm:grid-cols-2">
@@ -131,25 +129,27 @@ We look for companies with real customer demand, strong service models, operatio
                   </li>
                 ))}
               </ul>
-              <Link
-                href="/strategy"
-                className="mt-8 inline-flex rounded-full border border-navy/15 px-8 py-4 text-sm font-semibold text-navy transition-all hover:border-mdc-blue hover:text-mdc-blue"
-              >
-                Explore Our Strategy
-              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <SectionPhoto
+                src={siteImages.healthcare}
+                alt="Healthcare distribution and medical services"
+                className="aspect-square sm:col-span-2 sm:aspect-[21/9]"
+              />
+              <SectionPhoto
+                src={siteImages.homeServices}
+                alt="Home and local service businesses"
+                className="aspect-square"
+              />
+              <SectionPhoto
+                src={siteImages.startupTech}
+                alt="Startup technology and digital platforms"
+                className="aspect-square"
+              />
             </div>
           </div>
         </div>
       </section>
-
-      <CTASection
-        headline="Let's build something durable."
-        body="Whether you are a founder, small business owner, operator, investor, or strategic partner, MDC Capital Holdings is interested in conversations with people building real businesses."
-        primaryLabel="Partner With Us"
-        primaryHref="/contact"
-        secondaryLabel="View Our Portfolio"
-        secondaryHref="/portfolio"
-      />
     </>
   );
 }
