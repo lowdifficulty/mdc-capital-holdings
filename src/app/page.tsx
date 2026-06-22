@@ -23,8 +23,10 @@ export default function HomePage() {
 
       <section className="py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+          <div className="flex flex-col items-center gap-12">
             <SectionHeading
+              align="center"
+              headlineSingleLine
               eyebrow="Permanent Operating Capital"
               headline="Our long-term outlook sets us apart."
               body="MDC Capital Holdings was built for operators, founders, and small business owners who care about what happens after the transaction. We are not short-term financial buyers. We are builders. We invest our time, systems, capital, and operating experience into businesses we believe can compound over years.
@@ -33,8 +35,9 @@ We look for companies with real customer demand, strong service models, operatio
             />
             <SectionPhoto
               src={siteImages.operations}
-              alt="Operating team collaborating on business growth"
-              className="aspect-[5/4] lg:aspect-square"
+              alt="Wooden house models and growing stacks of coins representing long-term capital and durable growth"
+              className="aspect-[21/9] w-full max-w-5xl"
+              sizes="(max-width: 1024px) 100vw, 1024px"
             />
           </div>
         </div>
@@ -42,29 +45,21 @@ We look for companies with real customer demand, strong service models, operatio
 
       <section className="bg-light-gray py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-            <SectionPhoto
-              src={siteImages.localService}
-              alt="Mobile service business serving customers at home"
-              className="aspect-[4/3] order-2 lg:order-1"
-            />
-            <div className="order-1 lg:order-2">
-              <SectionHeading
-                headline="We help companies grow with hands-on operating support."
-                body="No two companies are alike. MDC Capital Holdings works across a focused group of operating businesses and digital platforms, matching our involvement to each company's stage, opportunity, and needs."
-              />
-              <div className="mt-14 grid gap-6 sm:grid-cols-2">
-                {whatWeDoCards.map((card) => (
-                  <article
-                    key={card.title}
-                    className="rounded-2xl border border-navy/8 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/25 hover:shadow-lg"
-                  >
-                    <h3 className="font-serif text-2xl text-navy">{card.title}</h3>
-                    <p className="mt-4 text-sm leading-relaxed text-slate">{card.body}</p>
-                  </article>
-                ))}
-              </div>
-            </div>
+          <SectionHeading
+            align="center"
+            headline="We help companies grow with hands-on operating support."
+            body="No two companies are alike. MDC Capital Holdings works across a focused group of operating businesses and digital platforms, matching our involvement to each company's stage, opportunity, and needs."
+          />
+          <div className="mx-auto mt-14 grid max-w-5xl gap-6 sm:grid-cols-2">
+            {whatWeDoCards.map((card) => (
+              <article
+                key={card.title}
+                className="rounded-2xl border border-navy/8 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/25 hover:shadow-lg"
+              >
+                <h3 className="font-serif text-2xl text-navy">{card.title}</h3>
+                <p className="mt-4 text-sm leading-relaxed text-slate">{card.body}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -80,7 +75,12 @@ We look for companies with real customer demand, strong service models, operatio
           />
           <div className="mt-14 grid gap-8 md:grid-cols-2">
             {portfolioCompanies.map((company) => (
-              <PortfolioCard key={company.id} company={company} variant="detailed" />
+              <PortfolioCard
+                key={company.id}
+                company={company}
+                variant="detailed"
+                imageClassName="h-[27.5rem]"
+              />
             ))}
           </div>
         </div>

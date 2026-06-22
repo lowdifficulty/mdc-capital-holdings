@@ -7,13 +7,13 @@ export default function SituationsSection() {
   const [activeIndex, setActiveIndex] = useState(0);
 
   return (
-    <section className="bg-light-gray py-24 md:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+    <section className="relative overflow-hidden bg-navy navy-tufting-texture py-24 text-white md:py-32">
+      <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="max-w-3xl">
-          <h2 className="font-serif text-3xl tracking-tight text-navy md:text-5xl">
+          <h2 className="font-serif text-3xl tracking-tight text-white md:text-5xl">
             We partner with businesses at pivotal moments.
           </h2>
-          <p className="mt-6 text-base leading-relaxed text-slate md:text-lg">
+          <p className="mt-6 text-base leading-relaxed text-white/75 md:text-lg">
             Select your situation to see how MDC can support your next stage of
             growth, transition, or building.
           </p>
@@ -31,12 +31,12 @@ export default function SituationsSection() {
                   className={`rounded-xl border px-5 py-4 text-left transition-all duration-300 ${
                     active
                       ? "border-mdc-blue bg-white shadow-md"
-                      : "border-transparent bg-white/60 hover:border-navy/10 hover:bg-white"
+                      : "border-white/15 bg-white/5 hover:border-white/30 hover:bg-white/10"
                   }`}
                 >
                   <span
                     className={`font-serif text-lg md:text-xl ${
-                      active ? "text-navy" : "text-slate"
+                      active ? "text-navy" : "text-white/85"
                     }`}
                   >
                     &ldquo;{situation.quote}&rdquo;

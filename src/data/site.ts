@@ -23,8 +23,7 @@ export const siteImages = {
     "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1400&q=80&auto=format&fit=crop",
   startupTech:
     "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1400&q=80&auto=format&fit=crop",
-  operations:
-    "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=1400&q=80&auto=format&fit=crop",
+  operations: "/images/long-term-outlook.png",
   localService:
     "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1400&q=80&auto=format&fit=crop",
 } as const;

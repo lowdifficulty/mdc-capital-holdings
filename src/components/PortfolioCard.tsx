@@ -4,6 +4,7 @@ import type { PortfolioCompany } from "@/data/site";
 interface PortfolioCardProps {
   company: PortfolioCompany;
   variant?: "grid" | "detailed";
+  imageClassName?: string;
 }
 
 function PortfolioLogo({ company }: { company: PortfolioCompany }) {
@@ -19,9 +20,15 @@ function PortfolioLogo({ company }: { company: PortfolioCompany }) {
   );
 }
 
-function PortfolioImage({ company }: { company: PortfolioCompany }) {
+function PortfolioImage({
+  company,
+  className = "h-44",
+}: {
+  company: PortfolioCompany;
+  className?: string;
+}) {
   return (
-    <div className="relative h-44 w-full overflow-hidden">
+    <div className={`relative w-full overflow-hidden ${className}`}>
       <Image
         src={company.imageSrc}
         alt={company.imageAlt}
@@ -34,11 +41,15 @@ function PortfolioImage({ company }: { company: PortfolioCompany }) {
   );
 }
 
-export default function PortfolioCard({ company, variant = "grid" }: PortfolioCardProps) {
+export default function PortfolioCard({
+  company,
+  variant = "grid",
+  imageClassName,
+}: PortfolioCardProps) {
   if (variant === "detailed") {
     return (
       <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-navy/8 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/30 hover:shadow-xl">
-        <PortfolioImage company={company} />
+        <PortfolioImage company={company} className={imageClassName} />
         <div className="bg-light-gray px-8 pb-6 pt-8">
           <PortfolioLogo company={company} />
           <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-mdc-blue">
@@ -77,7 +88,7 @@ export default function PortfolioCard({ company, variant = "grid" }: PortfolioCa
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-navy/8 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/30 hover:shadow-xl">
-      <PortfolioImage company={company} />
+      <PortfolioImage company={company} className={imageClassName} />
       <div className="flex min-h-40 flex-col justify-end bg-light-gray p-6">
         <PortfolioLogo company={company} />
         <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-mdc-blue">

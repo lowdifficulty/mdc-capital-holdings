@@ -99,3 +99,11 @@ h3 {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   background-size: 128px 128px;
 }
+
+/* Large diamond tufting — dark blue on navy, outline only */
+.navy-tufting-texture {
+  opacity: 0.95;
+  background-image: url("data:image/svg+xml,%3Csvg width='288' height='144' viewBox='0 0 288 144' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M72 1.5 L142.5 72 L72 142.5 L1.5 72 Z' fill='none' stroke='%23102a4a' stroke-opacity='0.36' stroke-width='0.95' stroke-linejoin='round'/%3E%3Cpath d='M216 1.5 L286.5 72 L216 142.5 L145.5 72 Z' fill='none' stroke='%230d2340' stroke-opacity='0.32' stroke-width='0.95' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 288px 144px;
+  background-attachment: fixed;
+}
