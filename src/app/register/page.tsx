@@ -1,10 +1,5 @@
-import RegisterForm from "@/components/auth/RegisterForm";
-
-export const metadata = {
-  title: "Register | MDC Capital Holdings",
-  robots: { index: false, follow: false },
-};
+import { redirect } from "next/navigation";
 
 export default function RegisterPage() {
-  return <RegisterForm />;
+  redirect("/login");
 }

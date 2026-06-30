@@ -58,13 +58,7 @@ export async function loginUser(
   email: string,
   password: string
 ): Promise<SessionUser | null> {
-  const admin = await loginAdmin(email, password);
-  if (admin) return admin;
-
-  const { verifyUserPassword } = await import("./users");
-  const user = await verifyUserPassword(email, password);
-  if (!user) return null;
-  return { email: user.email, name: user.name };
+  return loginAdmin(email, password);
 }
 
 export async function requireUser(): Promise<SessionUser> {

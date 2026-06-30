@@ -95,16 +95,6 @@ export default function LoginForm() {
                 {loading ? "Signing in…" : "Sign in"}
               </button>
             </form>
-
-            <p className="mt-6 text-center text-sm text-white/60">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center rounded-full border border-white/25 px-4 py-1.5 text-sm font-semibold text-white transition hover:border-mdc-blue hover:bg-mdc-blue/20"
-              >
-                Register
-              </Link>
-            </p>
           </div>
         </div>
       </div>
