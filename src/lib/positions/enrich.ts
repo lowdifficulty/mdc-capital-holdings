@@ -2,24 +2,38 @@ import "server-only";
 import { fetchBulkPriceSnapshots } from "@/lib/sentiment/prices";
 import type { Position, PositionWithQuote, PositionsReport, PositionsSummary } from "./types";
 
+function priorClose(price: number, dailyChangePct: number): number {
+  return price / (1 + dailyChangePct / 100);
+}
+
 function buildSummary(positions: PositionWithQuote[]): PositionsSummary {
   let totalMarketValue = 0;
   let totalCostBasis = 0;
+  let totalDailyPnL = 0;
+  let priorValue = 0;
 
   for (const p of positions) {
     if (p.marketValue != null) totalMarketValue += p.marketValue;
     if (p.costBasis != null) totalCostBasis += p.costBasis;
+    if (p.dailyPnL != null) totalDailyPnL += p.dailyPnL;
+    if (p.price != null && p.dailyChange != null && p.shares > 0) {
+      priorValue += p.shares * priorClose(p.price, p.dailyChange);
+    }
   }
 
   const totalUnrealizedPnL = totalMarketValue - totalCostBasis;
   const totalUnrealizedPnLPct =
     totalCostBasis > 0 ? (totalUnrealizedPnL / totalCostBasis) * 100 : 0;
+  const totalDailyPnLPct =
+    priorValue > 0 ? (totalDailyPnL / priorValue) * 100 : 0;
 
   return {
     totalMarketValue,
     totalCostBasis,
     totalUnrealizedPnL,
     totalUnrealizedPnLPct,
+    totalDailyPnL,
+    totalDailyPnLPct,
   };
 }
 
@@ -30,6 +44,7 @@ export async function enrichPositions(positions: Position[]): Promise<PositionsR
   const enriched: PositionWithQuote[] = positions.map((p) => {
     const quote = priceMap.get(p.symbol);
     const price = quote?.price;
+    const dailyChange = quote?.dailyChange;
     const costBasis = p.shares > 0 && p.avgCost > 0 ? p.shares * p.avgCost : undefined;
     const marketValue = price != null && p.shares > 0 ? p.shares * price : undefined;
     const unrealizedPnL =
@@ -39,19 +54,29 @@ export async function enrichPositions(positions: Position[]): Promise<PositionsR
         ? (unrealizedPnL / costBasis) * 100
         : undefined;
 
+    const prev = price != null && dailyChange != null ? priorClose(price, dailyChange) : undefined;
+    const dailyPnL =
+      price != null && prev != null && p.shares > 0 ? p.shares * (price - prev) : undefined;
+    const dailyPnLPct =
+      dailyPnL != null && prev != null && p.shares > 0
+        ? (dailyPnL / (p.shares * prev)) * 100
+        : undefined;
+
     return {
       ...p,
       price,
-      dailyChange: quote?.dailyChange,
+      dailyChange,
       marketValue,
       costBasis,
       unrealizedPnL,
       unrealizedPnLPct,
+      dailyPnL,
+      dailyPnLPct,
     };
   });
 
   return {
-    positions: enriched,
+    positions: enriched.sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0)),
     summary: buildSummary(enriched),
     updatedAt: new Date().toISOString(),
   };

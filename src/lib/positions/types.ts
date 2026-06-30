@@ -12,6 +12,8 @@ export interface PositionWithQuote extends Position {
   costBasis?: number;
   unrealizedPnL?: number;
   unrealizedPnLPct?: number;
+  dailyPnL?: number;
+  dailyPnLPct?: number;
 }
 
 export interface PositionsSummary {
@@ -19,6 +21,8 @@ export interface PositionsSummary {
   totalCostBasis: number;
   totalUnrealizedPnL: number;
   totalUnrealizedPnLPct: number;
+  totalDailyPnL: number;
+  totalDailyPnLPct: number;
 }
 
 export interface PositionsReport {

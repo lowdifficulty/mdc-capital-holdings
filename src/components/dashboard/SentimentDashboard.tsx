@@ -9,6 +9,7 @@ import MoversMobileList from "@/components/dashboard/MoversMobileList";
 import PositionsPanel from "@/components/dashboard/PositionsPanel";
 import {
   formatSentimentScore,
+  formatMentions,
   isSecondPlaceMover,
   isWinnerMover,
   scoreColor,
@@ -606,7 +607,15 @@ export default function SentimentDashboard() {
         )}
 
         {view === "positions" && (
-          <PositionsPanel onPositionsChange={setPositionSymbols} />
+          <PositionsPanel
+            onPositionsChange={setPositionSymbols}
+            onOpenSentiment={(sym) => {
+              setDraft(sym);
+              setSymbol(sym);
+              setView("24h");
+              setExpandedSymbol(null);
+            }}
+          />
         )}
 
         {view === "movers" && (
@@ -998,7 +1007,7 @@ export default function SentimentDashboard() {
                         </span>
                       </td>
                       <td className="px-1.5 py-2 tabular-nums text-white/55">
-                        {m.weekMentions}
+                        {formatMentions(m.weekMentions)}
                       </td>
                       <td
                         className="px-1.5 py-2 text-center text-white/70"

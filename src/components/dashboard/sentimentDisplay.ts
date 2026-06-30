@@ -44,6 +44,10 @@ export function formatSentimentScore(score: number): string {
   return `${sign}${value.toFixed(1)}`;
 }
 
+export function formatMentions(count: number): string {
+  return count.toFixed(1);
+}
+
 export function scoreColor(score: number): string {
   if (isScoreGreen(score)) return "text-emerald-400 bg-emerald-400/15 border-emerald-400/30";
   if (score <= -0.12) return "text-red-400 bg-red-400/15 border-red-400/30";

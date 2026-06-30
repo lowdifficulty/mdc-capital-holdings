@@ -23,6 +23,7 @@
 *.pem
 /data/users.json
 /data/intelligence/
+/data/positions.json
 
 # debug
 npm-debug.log*

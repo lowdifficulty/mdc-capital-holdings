@@ -19,6 +19,7 @@ import {
 import { fetchRedditMentions } from "./reddit";
 import { fetchStocktwits } from "./stocktwits";
 import { fetchSwaggyStocks, fetchAllSwaggyRows } from "./swaggystocks";
+import { fetchQuiver } from "./quiver";
 import { fetchTwitterSentiment } from "./twitter";
 import type {
   MoversReport,
@@ -54,6 +55,7 @@ const SOURCE_LABELS: Record<SentimentSource, string> = {
   twitter: "X (Twitter) via Finnhub",
   news_api: "NewsAPI (broad news)",
   options_flow: "Options put/call flow",
+  quiver: "Quiver Quantitative alt-data",
 };
 
 const DEFAULT_UNIVERSE = [
@@ -102,6 +104,11 @@ function buildWarnings(): string[] {
       "ALPHA_VANTAGE_API_KEY not set — Alpha Vantage ticker news sentiment skipped. Free tier available at alphavantage.co."
     );
   }
+  if (!process.env.QUIVER_API_TOKEN) {
+    warnings.push(
+      "QUIVER_API_TOKEN not set — Quiver news, WSB, congress trades, insiders, and alt-data skipped."
+    );
+  }
   return warnings;
 }
 
@@ -123,6 +130,7 @@ export async function fetchAllMentions(symbol: string): Promise<SentimentMention
     twitter,
     newsApi,
     optionsFlow,
+    quiver,
   ] = await Promise.all([
     fetchGoogleNews(symbol),
     fetchCnbc(symbol),
@@ -140,6 +148,7 @@ export async function fetchAllMentions(symbol: string): Promise<SentimentMention
     fetchTwitterSentiment(symbol, 30),
     fetchNewsApi(symbol),
     fetchOptionsFlow(symbol),
+    fetchQuiver(symbol),
   ]);
 
   return [
@@ -159,6 +168,7 @@ export async function fetchAllMentions(symbol: string): Promise<SentimentMention
     ...twitter,
     ...newsApi,
     ...optionsFlow,
+    ...quiver,
   ].sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
 }
 

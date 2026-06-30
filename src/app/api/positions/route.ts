@@ -4,7 +4,9 @@ import { enrichPositions } from "@/lib/positions/enrich";
 import {
   addPosition,
   getPositions,
+  importPositions,
   removePosition,
+  syncPortfolioSeed,
   updatePosition,
 } from "@/lib/positions/sessionStore";
 
@@ -15,7 +17,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const positions = await getPositions();
+  let positions = await getPositions();
+  if (positions.length === 0) {
+    positions = await syncPortfolioSeed();
+  }
   const report = await enrichPositions(positions);
   return NextResponse.json(report);
 }
@@ -81,6 +86,27 @@ export async function DELETE(request: Request) {
   }
 
   await removePosition(symbol);
+  const positions = await getPositions();
+  const report = await enrichPositions(positions);
+  return NextResponse.json(report);
+}
+
+export async function PUT(request: Request) {
+  try {
+    await requireUser();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = (await request.json()) as {
+    positions?: Array<{ symbol: string; shares: number; avgCost: number }>;
+    replace?: boolean;
+  };
+  if (!body.positions?.length) {
+    return NextResponse.json({ error: "positions array required" }, { status: 400 });
+  }
+
+  await importPositions(body.positions, body.replace ?? true);
   const positions = await getPositions();
   const report = await enrichPositions(positions);
   return NextResponse.json(report);

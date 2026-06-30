@@ -1,11 +1,8 @@
 "use client";
 
 import type { SentimentMover } from "@/lib/sentiment/types";
-import {
-  formatSentimentScore,
-  scoreColor,
-} from "@/components/dashboard/sentimentDisplay";
 import SimplePriceChart from "@/components/dashboard/SimplePriceChart";
+import SentimentQuickPanel from "@/components/dashboard/SentimentQuickPanel";
 
 function formatPrice(price?: number): string {
   if (price == null) return "—";
@@ -36,7 +33,13 @@ export default function MoverExpandPanel({
     <div className="w-full max-w-full overflow-hidden border-t border-mdc-blue/20 bg-navy/80 px-3 py-4 sm:px-5">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-lg font-bold tracking-tight">{mover.symbol}</p>
+          <button
+            type="button"
+            onClick={onOpenSentiment}
+            className="text-lg font-bold tracking-tight text-white hover:text-mdc-blue transition"
+          >
+            {mover.symbol}
+          </button>
           <p className="truncate text-sm text-white/50">{mover.name ?? "—"}</p>
         </div>
         {mover.price != null && (
@@ -51,36 +54,11 @@ export default function MoverExpandPanel({
 
       <SimplePriceChart symbol={mover.symbol} />
 
-      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/45">
-          Sentiment
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <SentimentPill label="24 hr" score={mover.h24Score} />
-          <SentimentPill label="Week" score={mover.weekScore} />
-          <SentimentPill label="Month" score={mover.monthScore} />
-        </div>
-        <button
-          type="button"
-          onClick={onOpenSentiment}
-          className="ml-auto text-sm text-mdc-blue hover:text-white"
-        >
-          Full sentiment analysis →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SentimentPill({ label, score }: { label: string; score: number }) {
-  return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span className="text-white/45">{label}</span>
-      <span
-        className={`rounded border px-2 py-0.5 font-semibold tabular-nums ${scoreColor(score)}`}
-      >
-        {formatSentimentScore(score)}
-      </span>
+      <SentimentQuickPanel
+        symbol={mover.symbol}
+        scores={{ h24: mover.h24Score, week: mover.weekScore, month: mover.monthScore }}
+        onOpenSentiment={onOpenSentiment}
+      />
     </div>
   );
 }

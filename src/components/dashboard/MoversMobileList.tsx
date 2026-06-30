@@ -3,6 +3,7 @@
 import type { SentimentMover } from "@/lib/sentiment/types";
 import {
   formatSentimentScore,
+  formatMentions,
   scoreColor,
   scoreTextColor,
 } from "@/components/dashboard/sentimentDisplay";
@@ -162,7 +163,7 @@ export default function MoversMobileList({
                       {formatSentimentScore(m.velocity)}
                     </span>
                   </span>
-                  <span>Mnt {m.weekMentions}</span>
+                  <span>Mnt {formatMentions(m.weekMentions)}</span>
                   <span>Sig {directionShort(m)}</span>
                 </div>
               </button>

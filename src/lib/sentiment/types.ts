@@ -18,7 +18,8 @@ export type SentimentSource =
   | "swaggystocks"
   | "twitter"
   | "news_api"
-  | "options_flow";
+  | "options_flow"
+  | "quiver";
 
 export interface SentimentMention {
   id: string;

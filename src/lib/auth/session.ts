@@ -12,6 +12,7 @@ export interface SessionData {
   user?: SessionUser;
   watchlist?: string[];
   positions?: Position[];
+  portfolioSeedVersion?: number;
 }
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "1";
