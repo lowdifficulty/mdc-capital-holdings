@@ -119,14 +119,14 @@ export default function SimplePriceChart({ symbol }: { symbol: string }) {
 
   return (
     <div className="w-full max-w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
-        <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-2 py-2 sm:px-3">
+        <div className="flex max-w-full gap-1 overflow-x-auto">
           {CHART_RANGES.map((r) => (
             <button
               key={r.id}
               type="button"
               onClick={() => setRange(r.id)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+              className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition sm:px-3 ${
                 range === r.id
                   ? "bg-mdc-blue text-white"
                   : "text-white/55 hover:bg-white/10 hover:text-white"

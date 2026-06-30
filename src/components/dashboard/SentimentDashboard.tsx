@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, Fragment } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix";
 import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
+import MoversMobileList from "@/components/dashboard/MoversMobileList";
 import {
   formatSentimentScore,
   isSecondPlaceMover,
@@ -18,6 +19,7 @@ import type {
   SentimentPeriod,
   SentimentReport,
 } from "@/lib/sentiment/types";
+import { readMoversCache, writeMoversCache, clearMoversCache } from "@/lib/dashboard/moversCache";
 
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
@@ -199,6 +201,10 @@ function pctColor(pct?: number): string {
   return "text-white/60";
 }
 
+function reportCacheKey(symbol: string, period: SentimentPeriod): string {
+  return `${symbol.toUpperCase()}:${period}`;
+}
+
 export default function SentimentDashboard() {
   const router = useRouter();
   const [view, setView] = useState<DashboardView>("movers");
@@ -207,7 +213,11 @@ export default function SentimentDashboard() {
   const [report, setReport] = useState<SentimentReport | null>(null);
   const [movers, setMovers] = useState<MoversReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [cacheReady, setCacheReady] = useState(false);
+  const moversRef = useRef<MoversReport | null>(null);
+  const reportCacheRef = useRef<Record<string, SentimentReport>>({});
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -215,6 +225,21 @@ export default function SentimentDashboard() {
   const [moverSortDir, setMoverSortDir] = useState<SortDir>("desc");
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [moverFilter, setMoverFilter] = useState<MoverFilter>("all");
+
+  useEffect(() => {
+    moversRef.current = movers;
+  }, [movers]);
+
+  useEffect(() => {
+    const cached = readMoversCache();
+    if (cached) {
+      setMovers(cached);
+      moversRef.current = cached;
+      setLastRefresh(new Date(cached.analyzedAt));
+      setLoading(false);
+    }
+    setCacheReady(true);
+  }, []);
 
   const filteredMovers = useMemo(() => {
     if (!movers) return [];
@@ -319,10 +344,10 @@ export default function SentimentDashboard() {
     setExpandedSymbol((prev) => (prev === m.symbol ? null : m.symbol));
   }
 
-  const loadSentimentData = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading(true);
-      setError("");
+  const loadDashboardData = useCallback(
+    async (opts?: { force?: boolean; silent?: boolean }) => {
+      const force = opts?.force ?? false;
+      const silent = opts?.silent ?? false;
 
       try {
         const sessionRes = await fetch("/api/auth/session");
@@ -333,56 +358,90 @@ export default function SentimentDashboard() {
         }
 
         if (view === "movers") {
+          if (!force && moversRef.current) {
+            if (!silent) setLoading(false);
+            return;
+          }
+
+          if (force && moversRef.current) setRefreshing(true);
+          else if (!silent) setLoading(true);
+          setError("");
+
           const res = await fetch("/api/sentiment?view=movers");
           if (res.status === 401) {
             router.replace("/login");
             return;
           }
           if (!res.ok) throw new Error("Failed to load movers");
-          setMovers((await res.json()) as MoversReport);
-          setReport(null);
-        } else {
-          const res = await fetch(
-            `/api/sentiment?symbol=${encodeURIComponent(symbol)}&period=${view}`
-          );
-          if (res.status === 401) {
-            router.replace("/login");
-            return;
-          }
-          if (!res.ok) throw new Error("Failed to load sentiment");
-          setReport((await res.json()) as SentimentReport);
-          setMovers(null);
+          const data = (await res.json()) as MoversReport;
+          setMovers(data);
+          moversRef.current = data;
+          writeMoversCache(data);
+          setLastRefresh(new Date(data.analyzedAt));
+          return;
         }
 
+        const cacheKey = reportCacheKey(symbol, view);
+        const cachedReport = reportCacheRef.current[cacheKey];
+        if (!force && cachedReport) {
+          setReport(cachedReport);
+          if (!silent) setLoading(false);
+          return;
+        }
+
+        if (!silent) setLoading(true);
+        setError("");
+
+        const res = await fetch(
+          `/api/sentiment?symbol=${encodeURIComponent(symbol)}&period=${view}`
+        );
+        if (res.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        if (!res.ok) throw new Error("Failed to load sentiment");
+        const data = (await res.json()) as SentimentReport;
+        reportCacheRef.current[cacheKey] = data;
+        setReport(data);
         setLastRefresh(new Date());
       } catch {
         setError("Could not load sentiment data. Try again.");
       } finally {
-        if (!silent) setLoading(false);
+        setLoading(false);
+        setRefreshing(false);
       }
     },
     [router, symbol, view]
   );
 
   useEffect(() => {
-    if (view !== "movers") setMoverFilter("all");
-  }, [view]);
+    if (!cacheReady) return;
+    void loadDashboardData();
+  }, [cacheReady, loadDashboardData]);
 
   useEffect(() => {
-    void loadSentimentData();
-  }, [loadSentimentData]);
+    if (view !== "movers") setMoverFilter("all");
+  }, [view]);
 
   useEffect(() => {
     void loadWatchlist();
   }, [loadWatchlist]);
 
   useEffect(() => {
-    if (!autoRefresh) return;
-    const id = window.setInterval(() => void loadSentimentData(true), POLL_MS);
+    if (!autoRefresh || view === "movers") return;
+    const id = window.setInterval(
+      () => void loadDashboardData({ force: true, silent: true }),
+      POLL_MS
+    );
     return () => window.clearInterval(id);
-  }, [autoRefresh, loadSentimentData]);
+  }, [autoRefresh, view, loadDashboardData]);
+
+  async function refreshMovers() {
+    await loadDashboardData({ force: true });
+  }
 
   async function handleLogout() {
+    clearMoversCache();
     await fetch("/api/auth/logout", { method: "POST" });
     router.replace("/login");
   }
@@ -400,31 +459,31 @@ export default function SentimentDashboard() {
   return (
     <div className="min-h-screen bg-navy text-white">
       <header className="border-b border-white/10 bg-navy/90 backdrop-blur-md sticky top-0 z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Link
               href="/"
-              className="flex h-9 w-9 items-center justify-center rounded-md bg-mdc-blue text-xs font-bold"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-mdc-blue text-xs font-bold"
             >
               MDC
             </Link>
-            <div>
-              <p className="text-sm font-semibold">Market Dashboard</p>
-              <p className="text-xs text-white/50">Movers · 24 hr · Week · Month</p>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">Market Dashboard</p>
+              <p className="hidden text-xs text-white/50 sm:block">Movers · 24 hr · Week · Month</p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => void handleLogout()}
-            className="text-sm text-white/60 hover:text-white"
+            className="shrink-0 text-sm text-white/60 hover:text-white"
           >
             Sign out
           </button>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
-        <div className="flex flex-wrap gap-2 border-b border-white/10 pb-4">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <div className="-mx-4 flex gap-2 overflow-x-auto border-b border-white/10 px-4 pb-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
           {(
             [
               ["movers", "Movers"],
@@ -437,7 +496,7 @@ export default function SentimentDashboard() {
               key={key}
               type="button"
               onClick={() => setView(key)}
-              className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition sm:px-5 ${
                 view === key
                   ? "bg-mdc-blue text-white"
                   : "border border-white/15 text-white/70 hover:border-white/30"
@@ -510,6 +569,14 @@ export default function SentimentDashboard() {
               sentiment velocity and mention momentum. Click a row for full multi-source analysis.
             </p>
             <div className="flex flex-wrap gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => void refreshMovers()}
+                disabled={refreshing}
+                className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/70 transition hover:border-mdc-blue hover:text-white disabled:opacity-50"
+              >
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </button>
               {MOVER_FILTER_BUTTONS.map((btn) => (
                 <button
                   key={btn.id}
@@ -540,13 +607,13 @@ export default function SentimentDashboard() {
         )}
 
         {report && view !== "movers" && (
-          <div className="mt-8 space-y-8">
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-1">
+          <div className="mt-6 space-y-6 sm:mt-8 sm:space-y-8">
+            <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:col-span-1">
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
                   {periodTitle(report.period)}
                 </p>
-                <p className="mt-3 font-serif text-4xl">{report.symbol}</p>
+                <p className="mt-2 font-serif text-3xl sm:mt-3 sm:text-4xl">{report.symbol}</p>
                 {report.price && (
                   <div className="mt-2 flex flex-wrap items-baseline gap-3">
                     <span className="text-2xl font-semibold tabular-nums">
@@ -593,7 +660,7 @@ export default function SentimentDashboard() {
                 )}
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:col-span-2">
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/50">
                   By source — sentiment matrix
                 </p>
@@ -733,7 +800,21 @@ export default function SentimentDashboard() {
               </p>
             )}
             {sortedMovers.length > 0 && (
-            <div className="overflow-y-auto overflow-x-hidden max-h-[70vh] rounded-2xl border border-white/10">
+            <>
+            <MoversMobileList
+              movers={sortedMovers}
+              expandedSymbol={expandedSymbol}
+              watchlist={watchlist}
+              onToggleExpand={toggleMoverExpand}
+              onToggleWatch={toggleWatching}
+              onOpenSentiment={(sym) => {
+                setDraft(sym);
+                setSymbol(sym);
+                setView("24h");
+                setExpandedSymbol(null);
+              }}
+            />
+            <div className="hidden md:block overflow-y-auto overflow-x-hidden md:max-h-[70vh] rounded-2xl border border-white/10">
               <table className="w-full table-fixed text-xs">
                 <colgroup>
                   <col className="w-[3%]" />
@@ -890,10 +971,12 @@ export default function SentimentDashboard() {
                 </tbody>
               </table>
             </div>
+            </>
             )}
             <p className="text-xs text-white/40">
-              Click a column header to sort. Click a row to expand the live price chart.
-              Use <span className="text-white/60">+</span> to add stocks to Watching.
+              <span className="md:hidden">Tap a card to expand the chart. Use </span>
+              <span className="hidden md:inline">Click a column header to sort. Click a row to expand the live price chart. Use </span>
+              <span className="text-white/60">+</span> to add stocks to Watching.
             </p>
           </div>
         )}
