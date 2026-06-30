@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Libre_Baskerville } from "next/font/google";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import AppShell from "@/components/AppShell";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -43,9 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} ${libreBaskerville.variable}`}>
       <body className="antialiased">
-        <Header />
-        <main>{children}</main>
-        <Footer />
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

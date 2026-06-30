@@ -1,0 +1,14 @@
+---
+description: User shorthand "42" means commit, push to GitHub, and deploy to Vercel production
+alwaysApply: true
+---
+
+# "42" = Ship It
+
+When the user sends **42** (or says "42"), treat it as a deploy request:
+
+1. **Commit** all relevant changes (never commit `.env*`, secrets, or `data/users.json`)
+2. **Push** to GitHub (`git push`)
+3. **Deploy** to Vercel production: `vercel deploy --prod`
+
+This project runs on port **3001** locally. Production is **https://mdccapitalholdings.com**. `git push` alone does not auto-deploy — always run `vercel deploy --prod` after pushing.

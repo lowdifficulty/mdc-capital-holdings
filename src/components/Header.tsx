@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { navLinks } from "@/data/site";
+import AuthNav, { AuthNavMobile } from "@/components/auth/AuthNav";
 
 export default function Header() {
   const pathname = usePathname();
@@ -59,6 +60,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
+          <AuthNav />
           <button
             type="button"
             aria-label="Toggle menu"
@@ -96,6 +98,7 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            <AuthNavMobile onNavigate={() => setMenuOpen(false)} />
           </nav>
         </div>
       )}
