@@ -87,10 +87,9 @@ export interface SentimentMover {
   symbol: string;
   name?: string;
   rank?: number;
+  h24Score: number;
   weekScore: number;
-  weekLabel: SentimentLabel;
   monthScore: number;
-  monthLabel: SentimentLabel;
   velocity: number;
   mentionVelocity: number;
   weekMentions: number;

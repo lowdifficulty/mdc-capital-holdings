@@ -4,9 +4,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix";
+import {
+  formatSentimentScore,
+  scoreColor,
+  scoreTextColor,
+} from "@/components/dashboard/sentimentDisplay";
 import type {
   MoversReport,
-  SentimentLabel,
   SentimentMover,
   SentimentPeriod,
   SentimentReport,
@@ -18,7 +22,7 @@ const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"
 type DashboardView = SentimentPeriod | "movers";
 
 function periodTitle(period: SentimentPeriod): string {
-  if (period === "24h") return "24-hour sentiment";
+  if (period === "24h") return "24 hr sentiment";
   if (period === "week") return "7-day sentiment";
   return "30-day sentiment";
 }
@@ -37,7 +41,7 @@ function priorPeriodLabel(period: SentimentPeriod): string {
 
 function loadingPeriodLabel(view: DashboardView): string {
   if (view === "movers") return "Loading all tracked stocks…";
-  if (view === "24h") return "Analyzing 24-hour sentiment…";
+  if (view === "24h") return "Analyzing 24 hr sentiment…";
   if (view === "week") return "Analyzing 7-day sentiment…";
   return "Analyzing 30-day sentiment…";
 }
@@ -50,6 +54,7 @@ type MoverSortKey =
   | "dailyChange"
   | "weeklyChange"
   | "monthlyChange"
+  | "h24Score"
   | "weekScore"
   | "monthScore"
   | "velocity"
@@ -74,6 +79,8 @@ function compareMovers(a: SentimentMover, b: SentimentMover, key: MoverSortKey):
       return (a.weeklyChange ?? -999) - (b.weeklyChange ?? -999);
     case "monthlyChange":
       return (a.monthlyChange ?? -999) - (b.monthlyChange ?? -999);
+    case "h24Score":
+      return a.h24Score - b.h24Score;
     case "weekScore":
       return a.weekScore - b.weekScore;
     case "monthScore":
@@ -98,14 +105,16 @@ function sortMovers(
   return dir === "desc" ? sorted.reverse() : sorted;
 }
 
-function labelColor(label: SentimentLabel): string {
-  if (label === "bullish") return "text-emerald-400 bg-emerald-400/15 border-emerald-400/30";
-  if (label === "bearish") return "text-red-400 bg-red-400/15 border-red-400/30";
-  return "text-amber-200 bg-amber-200/10 border-amber-200/20";
-}
-
-function scorePercent(score: number): string {
-  return `${score >= 0 ? "+" : ""}${(score * 100).toFixed(0)}`;
+function SentimentBadge({ score, large }: { score: number; large?: boolean }) {
+  return (
+    <span
+      className={`inline-flex rounded-md border font-semibold tabular-nums ${scoreColor(score)} ${
+        large ? "px-4 py-2 text-2xl" : "px-2 py-0.5 text-xs"
+      }`}
+    >
+      {formatSentimentScore(score)}
+    </span>
+  );
 }
 
 function formatTime(iso: string): string {
@@ -257,7 +266,7 @@ export default function SentimentDashboard() {
             </Link>
             <div>
               <p className="text-sm font-semibold">Market Sentiment</p>
-              <p className="text-xs text-white/50">Movers · 24h · 7-day · 30-day</p>
+              <p className="text-xs text-white/50">Movers · 24 hr · Week · Month</p>
             </div>
           </div>
           <button
@@ -275,7 +284,7 @@ export default function SentimentDashboard() {
           {(
             [
               ["movers", "Movers"],
-              ["24h", "24"],
+              ["24h", "24 hr"],
               ["week", "Week"],
               ["month", "Month"],
             ] as const
@@ -383,15 +392,8 @@ export default function SentimentDashboard() {
                     </span>
                   </div>
                 )}
-                <div className="mt-4 flex items-center gap-3">
-                  <span
-                    className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold capitalize ${labelColor(report.overallLabel)}`}
-                  >
-                    {report.overallLabel}
-                  </span>
-                  <span className="text-2xl font-semibold tabular-nums">
-                    {scorePercent(report.overallScore)}
-                  </span>
+                <div className="mt-4">
+                  <SentimentBadge score={report.overallScore} large />
                 </div>
                 <p className="mt-4 text-xs text-white/45">
                   {report.mentionCount} mentions · {report.sources.length} active sources · Updated{" "}
@@ -405,12 +407,8 @@ export default function SentimentDashboard() {
                     </p>
                     <p>
                       Sentiment velocity:{" "}
-                      <span
-                        className={
-                          report.comparison.velocity >= 0 ? "text-emerald-400" : "text-red-400"
-                        }
-                      >
-                        {scorePercent(report.comparison.velocity)}
+                      <span className={`tabular-nums ${scoreTextColor(report.comparison.velocity)}`}>
+                        {formatSentimentScore(report.comparison.velocity)}
                       </span>
                     </p>
                     <p>
@@ -422,7 +420,9 @@ export default function SentimentDashboard() {
                     </p>
                     <p className="text-white/40">
                       Prior period: {report.comparison.priorMentionCount} mentions ·{" "}
-                      {report.comparison.priorLabel} ({scorePercent(report.comparison.priorScore)})
+                      <span className={scoreTextColor(report.comparison.priorScore)}>
+                        {formatSentimentScore(report.comparison.priorScore)}
+                      </span>
                     </p>
                   </div>
                 )}
@@ -468,11 +468,7 @@ export default function SentimentDashboard() {
                           </p>
                         )}
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase ${labelColor(mention.label)}`}
-                      >
-                        {mention.label}
-                      </span>
+                      <SentimentBadge score={mention.score} />
                     </div>
                     <p className="mt-2 text-[10px] text-white/40 uppercase tracking-wide">
                       {mention.source.replace(/_/g, " ")}
@@ -506,8 +502,9 @@ export default function SentimentDashboard() {
                         ["dailyChange", "Day %"],
                         ["weeklyChange", "Week %"],
                         ["monthlyChange", "Month %"],
-                        ["weekScore", "7d Sent."],
-                        ["monthScore", "30d Sent."],
+                        ["h24Score", "24 hr"],
+                        ["weekScore", "Week"],
+                        ["monthScore", "Month"],
                         ["velocity", "Velocity"],
                         ["mentions", "Mentions"],
                         ["signal", "Signal"],
@@ -557,24 +554,17 @@ export default function SentimentDashboard() {
                         {formatPct(m.monthlyChange)}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full border px-2 py-0.5 text-xs capitalize ${labelColor(m.weekLabel)}`}
-                        >
-                          {m.weekLabel} {scorePercent(m.weekScore)}
-                        </span>
+                        <SentimentBadge score={m.h24Score} />
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-white/70 capitalize">
-                          {m.monthLabel} {scorePercent(m.monthScore)}
-                        </span>
+                        <SentimentBadge score={m.weekScore} />
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={
-                            m.velocity >= 0 ? "text-emerald-400 font-semibold" : "text-red-400 font-semibold"
-                          }
-                        >
-                          {scorePercent(m.velocity)}
+                        <SentimentBadge score={m.monthScore} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`font-semibold tabular-nums ${scoreTextColor(m.velocity)}`}>
+                          {formatSentimentScore(m.velocity)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-white/60">

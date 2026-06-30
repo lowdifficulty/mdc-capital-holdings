@@ -2,7 +2,6 @@ import type { ApeWisdomRow } from "./apewisdom";
 import { mentionVelocityScore as velocityScore } from "./apewisdom";
 import type { SwaggyRow } from "./swaggystocks";
 import { swaggySentimentScore } from "./swaggystocks";
-import { labelFromScore } from "./lexicon";
 import type { SentimentMover } from "./types";
 
 function attentionScore(mentions: number): number {
@@ -33,7 +32,7 @@ export function buildSocialMover(
 
   const hasApe = Boolean(ape);
   const hasSwaggy = Boolean(swaggy);
-  const weekScore =
+  const h24Score =
     hasApe && hasSwaggy
       ? apeWeekScore * 0.6 + swaggyScore * 0.4
       : hasApe
@@ -42,21 +41,21 @@ export function buildSocialMover(
 
   const monthMentions = Math.max(weekMentions, ape?.upvotes ?? 0);
   const monthScore = attentionScore(monthMentions);
+  const weekScore = (h24Score + monthScore) / 2;
 
   const priorMentions = ape?.mentions_24h_ago ?? Math.max(1, weekMentions * 0.75);
   const mentionVelocity =
     priorMentions > 0 ? (weekMentions - priorMentions) / priorMentions : weekMentions > 0 ? 1 : 0;
 
   const priorScore = monthScore * 0.75;
-  const velocity = weekScore - priorScore;
+  const velocity = h24Score - priorScore;
   const moverScore = velocity * 0.65 + Math.max(-1, Math.min(1, mentionVelocity)) * 0.35;
 
   return {
     symbol,
+    h24Score,
     weekScore,
-    weekLabel: labelFromScore(weekScore),
     monthScore,
-    monthLabel: labelFromScore(monthScore),
     velocity,
     mentionVelocity,
     weekMentions,
