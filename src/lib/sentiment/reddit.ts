@@ -24,6 +24,7 @@ const SUBREDDITS = [
   "wallstreetbets",
   "StockMarket",
   "options",
+  "smallstreetbets",
 ];
 
 export async function fetchRedditMentions(symbol: string): Promise<SentimentMention[]> {

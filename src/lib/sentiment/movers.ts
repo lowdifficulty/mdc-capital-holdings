@@ -1,0 +1,69 @@
+import type { ApeWisdomRow } from "./apewisdom";
+import { mentionVelocityScore as velocityScore } from "./apewisdom";
+import type { SwaggyRow } from "./swaggystocks";
+import { swaggySentimentScore } from "./swaggystocks";
+import { labelFromScore } from "./lexicon";
+import type { SentimentMover } from "./types";
+
+function attentionScore(mentions: number): number {
+  return Math.max(-1, Math.min(1, Math.log10(mentions + 1) / 2.2 - 0.15));
+}
+
+function moverDirection(velocity: number): SentimentMover["direction"] {
+  if (velocity >= 0.08) return "heating_up";
+  if (velocity <= -0.08) return "cooling_down";
+  return "stable";
+}
+
+export function buildSocialMover(
+  symbol: string,
+  ape?: ApeWisdomRow,
+  swaggy?: SwaggyRow
+): SentimentMover | null {
+  const apeMentions = ape?.mentions ?? 0;
+  const swaggyMentions = swaggy?.mentions ?? 0;
+  const weekMentions = apeMentions + swaggyMentions;
+
+  if (!weekMentions && !ape && !swaggy) return null;
+
+  const apeWeekScore = ape
+    ? velocityScore(ape.mentions, ape.mentions_24h_ago)
+    : 0;
+  const swaggyScore = swaggy ? swaggySentimentScore(swaggy) : 0;
+
+  const hasApe = Boolean(ape);
+  const hasSwaggy = Boolean(swaggy);
+  const weekScore =
+    hasApe && hasSwaggy
+      ? apeWeekScore * 0.6 + swaggyScore * 0.4
+      : hasApe
+        ? apeWeekScore
+        : swaggyScore;
+
+  const monthMentions = Math.max(weekMentions, ape?.upvotes ?? 0);
+  const monthScore = attentionScore(monthMentions);
+
+  const priorMentions = ape?.mentions_24h_ago ?? Math.max(1, weekMentions * 0.75);
+  const mentionVelocity =
+    priorMentions > 0 ? (weekMentions - priorMentions) / priorMentions : weekMentions > 0 ? 1 : 0;
+
+  const priorScore = monthScore * 0.75;
+  const velocity = weekScore - priorScore;
+  const moverScore = velocity * 0.65 + Math.max(-1, Math.min(1, mentionVelocity)) * 0.35;
+
+  return {
+    symbol,
+    weekScore,
+    weekLabel: labelFromScore(weekScore),
+    monthScore,
+    monthLabel: labelFromScore(monthScore),
+    velocity,
+    mentionVelocity,
+    weekMentions,
+    monthMentions,
+    moverScore,
+    direction: moverDirection(velocity),
+    rank: ape?.rank,
+    name: ape?.name ?? swaggy?.name,
+  };
+}

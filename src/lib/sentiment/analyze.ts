@@ -1,20 +1,59 @@
-import { fetchCnbc, fetchFinnhubNews, fetchGoogleNews, fetchMarketWatch } from "./news";
-import { fetchRedditMentions } from "./reddit";
+import { fetchAllApeWisdomRows, fetchApeWisdomMention } from "./apewisdom";
+import { fetchAlphaVantageNews } from "./alphaVantage";
+import { fetchFinnhubSocial } from "./finnhubSocial";
 import { labelFromScore } from "./lexicon";
+import { buildSocialMover } from "./movers";
+import { fetchBulkPriceSnapshots, fetchPriceSnapshot } from "./prices";
+import { buildSourceMatrix } from "./sourceMatrix";
+import {
+  fetchCnbc,
+  fetchFinnhubNews,
+  fetchGoogleNews,
+  fetchMarketWatch,
+  fetchNasdaqNews,
+  fetchSeekingAlpha,
+  fetchYahooFinance,
+} from "./news";
+import { fetchRedditMentions } from "./reddit";
+import { fetchStocktwits } from "./stocktwits";
+import { fetchSwaggyStocks, fetchAllSwaggyRows } from "./swaggystocks";
 import type {
+  MoversReport,
   SentimentMention,
+  SentimentMover,
+  SentimentPeriod,
   SentimentReport,
   SentimentSource,
   SourceBreakdown,
 } from "./types";
+import {
+  averageScore,
+  filterMentionsBetweenDays,
+  filterMentionsBetweenHours,
+  filterMentionsByDays,
+  filterMentionsByHours,
+} from "./utils";
 
 const SOURCE_LABELS: Record<SentimentSource, string> = {
-  finnhub: "Finnhub / wire headlines",
-  google_news: "Google News (major outlets)",
+  finnhub: "Finnhub wire headlines",
+  finnhub_social: "Finnhub Reddit/X social",
+  google_news: "Google News",
   cnbc: "CNBC",
   marketwatch: "MarketWatch",
-  reddit: "Reddit discussions",
+  yahoo_finance: "Yahoo Finance",
+  nasdaq: "Nasdaq",
+  seeking_alpha: "Seeking Alpha",
+  reddit: "Reddit (6 subreddits)",
+  stocktwits: "Stocktwits",
+  apewisdom: "ApeWisdom Reddit tracker",
+  alpha_vantage: "Alpha Vantage news sentiment",
+  swaggystocks: "SwaggyStocks WSB",
 };
+
+const DEFAULT_UNIVERSE = [
+  "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL",
+  "AMD", "PLTR", "GME", "AMC", "SOFI", "COIN", "MARA",
+];
 
 function aggregateSources(mentions: SentimentMention[]): SourceBreakdown[] {
   const buckets = new Map<SentimentSource, SentimentMention[]>();
@@ -40,58 +79,248 @@ function aggregateSources(mentions: SentimentMention[]): SourceBreakdown[] {
     .sort((a, b) => b.count - a.count);
 }
 
-export async function analyzeStockSentiment(symbol: string): Promise<SentimentReport> {
-  const ticker = symbol.trim().toUpperCase().replace(/[^A-Z.]/g, "");
+function buildWarnings(): string[] {
   const warnings: string[] = [];
+  if (!process.env.FINNHUB_API_KEY) {
+    warnings.push(
+      "FINNHUB_API_KEY not set — Finnhub headlines & social sentiment skipped. Recommended for news + Reddit/X aggregates."
+    );
+  }
+  if (!process.env.ALPHA_VANTAGE_API_KEY) {
+    warnings.push(
+      "ALPHA_VANTAGE_API_KEY not set — Alpha Vantage ticker news sentiment skipped. Free tier available at alphavantage.co."
+    );
+  }
+  return warnings;
+}
+
+export async function fetchAllMentions(symbol: string): Promise<SentimentMention[]> {
+  const [
+    google,
+    cnbc,
+    marketwatch,
+    yahoo,
+    nasdaq,
+    seekingAlpha,
+    finnhub,
+    finnhubSocial,
+    reddit,
+    stocktwits,
+    apewisdom,
+    swaggystocks,
+    alphaVantage,
+  ] = await Promise.all([
+    fetchGoogleNews(symbol),
+    fetchCnbc(symbol),
+    fetchMarketWatch(symbol),
+    fetchYahooFinance(symbol),
+    fetchNasdaqNews(symbol),
+    fetchSeekingAlpha(symbol),
+    fetchFinnhubNews(symbol, 30),
+    fetchFinnhubSocial(symbol, 30),
+    fetchRedditMentions(symbol),
+    fetchStocktwits(symbol),
+    fetchApeWisdomMention(symbol),
+    fetchSwaggyStocks(symbol),
+    fetchAlphaVantageNews(symbol),
+  ]);
+
+  return [
+    ...google,
+    ...cnbc,
+    ...marketwatch,
+    ...yahoo,
+    ...nasdaq,
+    ...seekingAlpha,
+    ...finnhub,
+    ...finnhubSocial,
+    ...reddit,
+    ...stocktwits,
+    ...apewisdom,
+    ...swaggystocks,
+    ...alphaVantage,
+  ].sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
+}
+
+function computeVelocity(
+  periodMentions: SentimentMention[],
+  priorMentions: SentimentMention[],
+  period: SentimentPeriod = "week"
+) {
+  const weekScore = averageScore(periodMentions);
+  const priorScore = averageScore(priorMentions);
+  const velocity = weekScore - priorScore;
+
+  const periodCount = periodMentions.length;
+  const priorCount = priorMentions.length;
+
+  let mentionVelocity: number;
+  if (period === "24h") {
+    mentionVelocity =
+      priorCount > 0 ? (periodCount - priorCount) / priorCount : periodCount > 0 ? 1 : 0;
+  } else if (period === "week") {
+    const expectedFromPrior = priorCount > 0 ? (priorCount / 23) * 7 : 0;
+    mentionVelocity =
+      expectedFromPrior > 0
+        ? (periodCount - expectedFromPrior) / expectedFromPrior
+        : periodCount > 0
+          ? 1
+          : 0;
+  } else {
+    mentionVelocity =
+      priorCount > 0 ? (periodCount - priorCount) / priorCount : periodCount > 0 ? 1 : 0;
+  }
+
+  return {
+    weekScore,
+    priorScore,
+    velocity,
+    mentionVelocity,
+    weekCount: periodCount,
+    priorCount,
+  };
+}
+
+export async function analyzeStockSentiment(
+  symbol: string,
+  period: SentimentPeriod = "week"
+): Promise<SentimentReport> {
+  const ticker = symbol.trim().toUpperCase().replace(/[^A-Z.]/g, "");
+  const warnings = buildWarnings();
+  const analyzedAt = new Date().toISOString();
 
   if (!ticker || ticker.length > 6) {
     return {
       symbol: ticker || "?",
-      analyzedAt: new Date().toISOString(),
+      analyzedAt,
+      period,
       overallScore: 0,
       overallLabel: "neutral",
       mentionCount: 0,
       sources: [],
+      sourceMatrix: [],
       mentions: [],
       warnings: ["Enter a valid stock ticker (e.g. AAPL, MSFT, TSLA)."],
     };
   }
 
-  if (!process.env.FINNHUB_API_KEY) {
-    warnings.push(
-      "FINNHUB_API_KEY is not set — Finnhub headlines are skipped. Add it in Vercel env for broader news coverage."
-    );
-  }
-
-  const [google, cnbc, marketwatch, finnhub, reddit] = await Promise.all([
-    fetchGoogleNews(ticker),
-    fetchCnbc(ticker),
-    fetchMarketWatch(ticker),
-    fetchFinnhubNews(ticker),
-    fetchRedditMentions(ticker),
+  const [allMentions, price] = await Promise.all([
+    fetchAllMentions(ticker),
+    fetchPriceSnapshot(ticker),
   ]);
 
-  const mentions = [...google, ...cnbc, ...marketwatch, ...finnhub, ...reddit].sort(
-    (a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? "")
-  );
+  const h24Mentions = filterMentionsByHours(allMentions, 24);
+  const weekMentions = filterMentionsByDays(allMentions, 7);
+  const monthMentions = filterMentionsByDays(allMentions, 30);
 
-  if (!mentions.length) {
+  const periodMentions =
+    period === "24h"
+      ? h24Mentions
+      : period === "week"
+        ? weekMentions
+        : monthMentions;
+
+  const priorMentions =
+    period === "24h"
+      ? filterMentionsBetweenHours(allMentions, 48, 24)
+      : period === "week"
+        ? filterMentionsBetweenDays(allMentions, 30, 7)
+        : filterMentionsBetweenDays(allMentions, 60, 30);
+
+  const periodLabel =
+    period === "24h" ? "24 hours" : period === "week" ? "7 days" : "30 days";
+
+  if (!periodMentions.length) {
     warnings.push(
-      "No recent mentions found. Try a more active ticker or check again in a few minutes."
+      `No mentions in the last ${periodLabel}. Try a more active ticker or add API keys for broader coverage.`
     );
   }
 
-  const overallScore =
-    mentions.reduce((sum, m) => sum + m.score, 0) / Math.max(mentions.length, 1);
+  const overallScore = averageScore(periodMentions);
+  const { priorScore, velocity, mentionVelocity } = computeVelocity(
+    periodMentions,
+    priorMentions,
+    period
+  );
+  const h24Sources = aggregateSources(h24Mentions);
+  const weekSources = aggregateSources(weekMentions);
+  const monthSources = aggregateSources(monthMentions);
+  const sourceMatrix = buildSourceMatrix(h24Sources, weekSources, monthSources, SOURCE_LABELS);
 
   return {
     symbol: ticker,
-    analyzedAt: new Date().toISOString(),
+    analyzedAt,
+    period,
     overallScore,
     overallLabel: labelFromScore(overallScore),
-    mentionCount: mentions.length,
-    sources: aggregateSources(mentions),
-    mentions: mentions.slice(0, 60),
+    mentionCount: periodMentions.length,
+    sources: aggregateSources(periodMentions),
+    sourceMatrix,
+    mentions: periodMentions.slice(0, 80),
+    warnings,
+    price: price ?? undefined,
+    comparison: {
+      priorScore,
+      priorLabel: labelFromScore(priorScore),
+      priorMentionCount: priorMentions.length,
+      velocity,
+      mentionVelocity,
+    },
+  };
+}
+
+export async function analyzeMovers(): Promise<MoversReport> {
+  const warnings: string[] = [];
+  const analyzedAt = new Date().toISOString();
+
+  const [apeRows, swaggyRows] = await Promise.all([
+    fetchAllApeWisdomRows(),
+    fetchAllSwaggyRows(),
+  ]);
+
+  const swaggyByTicker = new Map(swaggyRows.map((r) => [r.ticker, r]));
+  const tickers = new Set<string>();
+
+  for (const row of apeRows) tickers.add(row.ticker);
+  for (const row of swaggyRows) tickers.add(row.ticker);
+  for (const sym of DEFAULT_UNIVERSE) tickers.add(sym);
+
+  const apeByTicker = new Map(apeRows.map((r) => [r.ticker, r]));
+
+  const movers = Array.from(tickers)
+    .map((symbol) => {
+      const ape = apeByTicker.get(symbol);
+      const swaggy = swaggyByTicker.get(symbol);
+      return buildSocialMover(symbol, ape, swaggy);
+    })
+    .filter((m): m is SentimentMover => m !== null)
+    .sort((a, b) => Math.abs(b.moverScore) - Math.abs(a.moverScore));
+
+  const priceMap = await fetchBulkPriceSnapshots(movers.map((m) => m.symbol));
+  const moversWithPrices = movers.map((m) => {
+    const p = priceMap.get(m.symbol);
+    if (!p) return m;
+    return {
+      ...m,
+      price: p.price,
+      dailyChange: p.dailyChange,
+      weeklyChange: p.weeklyChange,
+      monthlyChange: p.monthlyChange,
+    };
+  });
+
+  if (!moversWithPrices.length) {
+    warnings.push("No mover data found. ApeWisdom / SwaggyStocks may be unreachable.");
+  } else {
+    warnings.push(
+      `Scanned ${moversWithPrices.length} tickers across ApeWisdom (${apeRows.length}) + SwaggyStocks (${swaggyRows.length}). Prices from Yahoo Finance. Click a row for full multi-source week analysis.`
+    );
+  }
+
+  return {
+    analyzedAt,
+    movers: moversWithPrices,
+    totalAnalyzed: moversWithPrices.length,
     warnings,
   };
 }

@@ -17,7 +17,7 @@ function toMention(
     title: item.title,
     summary: item.description,
     url: item.link,
-    publishedAt: item.pubDate,
+    publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : undefined,
     score,
     label: labelFromScore(score),
   };
@@ -27,21 +27,40 @@ export async function fetchGoogleNews(symbol: string): Promise<SentimentMention[
   const query = encodeURIComponent(`${symbol} stock`);
   const url = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
   const items = await fetchRss(url, UA);
-  return items.slice(0, 20).map((item, i) => toMention("google_news", item, i));
+  return items.slice(0, 25).map((item, i) => toMention("google_news", item, i));
 }
 
 export async function fetchCnbc(symbol: string): Promise<SentimentMention[]> {
   const query = encodeURIComponent(symbol);
   const url = `https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss&query=${query}`;
   const items = await fetchRss(url, UA);
-  return items.slice(0, 15).map((item, i) => toMention("cnbc", item, i));
+  return items.slice(0, 20).map((item, i) => toMention("cnbc", item, i));
 }
 
 export async function fetchMarketWatch(symbol: string): Promise<SentimentMention[]> {
   const query = encodeURIComponent(symbol);
   const url = `https://www.marketwatch.com/rss/search?q=${query}`;
   const items = await fetchRss(url, UA);
-  return items.slice(0, 15).map((item, i) => toMention("marketwatch", item, i));
+  return items.slice(0, 20).map((item, i) => toMention("marketwatch", item, i));
+}
+
+export async function fetchYahooFinance(symbol: string): Promise<SentimentMention[]> {
+  const url = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(symbol)}&region=US&lang=en-US`;
+  const items = await fetchRss(url, UA);
+  return items.slice(0, 20).map((item, i) => toMention("yahoo_finance", item, i));
+}
+
+export async function fetchNasdaqNews(symbol: string): Promise<SentimentMention[]> {
+  const query = encodeURIComponent(symbol);
+  const url = `https://www.nasdaq.com/feed/rssoutbound?category=Stocks&search=${query}`;
+  const items = await fetchRss(url, UA);
+  return items.slice(0, 15).map((item, i) => toMention("nasdaq", item, i));
+}
+
+export async function fetchSeekingAlpha(symbol: string): Promise<SentimentMention[]> {
+  const url = `https://seekingalpha.com/api/sa/combined/${encodeURIComponent(symbol.toLowerCase())}.xml`;
+  const items = await fetchRss(url, UA);
+  return items.slice(0, 15).map((item, i) => toMention("seeking_alpha", item, i));
 }
 
 interface FinnhubNewsItem {
@@ -52,13 +71,13 @@ interface FinnhubNewsItem {
   source: string;
 }
 
-export async function fetchFinnhubNews(symbol: string): Promise<SentimentMention[]> {
+export async function fetchFinnhubNews(symbol: string, days = 30): Promise<SentimentMention[]> {
   const token = process.env.FINNHUB_API_KEY;
   if (!token) return [];
 
   const to = new Date();
   const from = new Date();
-  from.setDate(from.getDate() - 7);
+  from.setDate(from.getDate() - days);
 
   const fromStr = from.toISOString().slice(0, 10);
   const toStr = to.toISOString().slice(0, 10);
@@ -68,7 +87,7 @@ export async function fetchFinnhubNews(symbol: string): Promise<SentimentMention
   if (!res.ok) return [];
 
   const data = (await res.json()) as FinnhubNewsItem[];
-  return data.slice(0, 20).map((item, i) => {
+  return data.slice(0, 30).map((item, i) => {
     const text = `${item.headline} ${item.summary}`;
     const score = scoreText(text);
     return {

@@ -1,0 +1,26 @@
+---
+description: Standard dev workflow — restart localhost after builds or when blank/500
+alwaysApply: true
+---
+
+# Local Dev Server Procedure
+
+This project runs at **http://localhost:3001** (`npm run dev`).
+
+## When to restart
+
+After **any** of these, restart the dev server before telling the user to check localhost:
+
+- Running `npm run build` (deletes or corrupts `.next` while dev is running)
+- User reports blank page, white screen, or 500 errors on localhost
+- Finishing a coding session where the dev server was left running through a build
+- Webpack / `prerender-manifest.json` / `__webpack_modules__` errors in terminal
+
+## Restart steps (Windows)
+
+1. Kill processes on ports **3000** and **3001**
+2. Delete the **`.next`** folder
+3. Run **`npm run dev`**
+4. Verify **http://localhost:3001** returns 200 before reporting success
+
+Do not assume localhost works without restarting after a production build.
