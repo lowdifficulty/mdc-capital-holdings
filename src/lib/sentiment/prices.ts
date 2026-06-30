@@ -5,7 +5,6 @@ const UA = "MDC-Capital-Sentiment/1.0";
 
 interface YahooChartMeta {
   regularMarketPrice?: number;
-  chartPreviousClose?: number;
   previousClose?: number;
   longName?: string;
   shortName?: string;
@@ -70,6 +69,22 @@ async function fetchYahooChart(symbol: string, range: string): Promise<YahooChar
   }
 }
 
+function resolvePriorSessionClose(
+  meta: YahooChartMeta | undefined,
+  closes: (number | null)[]
+): number | null {
+  // previousClose is the prior session close when Yahoo provides it.
+  if (meta?.previousClose != null && meta.previousClose > 0) {
+    return meta.previousClose;
+  }
+  // chartPreviousClose is the chart range baseline, not yesterday — do not use for day %.
+  if (closes.length >= 2) {
+    const priorBar = closes[closes.length - 2];
+    if (priorBar != null && priorBar > 0) return priorBar;
+  }
+  return null;
+}
+
 function buildPriceHistory(result: YahooChartResult, symbol: string): PriceHistory | null {
   const meta = result.meta;
   const timestamps = result.timestamp ?? [];
@@ -78,11 +93,7 @@ function buildPriceHistory(result: YahooChartResult, symbol: string): PriceHisto
   const price = meta?.regularMarketPrice ?? closes[closes.length - 1] ?? null;
   if (price == null) return null;
 
-  const prevClose =
-    meta?.chartPreviousClose ??
-    meta?.previousClose ??
-    closes[closes.length - 2] ??
-    price;
+  const prevClose = resolvePriorSessionClose(meta, closes) ?? price;
 
   const fallback = oldestClose(closes) ?? prevClose;
   const weekClose = closeOnOrBefore(timestamps, closes, 7) ?? fallback;
