@@ -7,6 +7,7 @@ import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix"
 import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
 import {
   formatSentimentScore,
+  isSecondPlaceMover,
   isWinnerMover,
   scoreColor,
   scoreTextColor,
@@ -46,6 +47,40 @@ function loadingPeriodLabel(view: DashboardView): string {
   if (view === "24h") return "Analyzing 24 hr sentiment…";
   if (view === "week") return "Analyzing 7-day sentiment…";
   return "Analyzing 30-day sentiment…";
+}
+
+type MoverFilter = "all" | "winners" | "second";
+
+const MOVER_FILTER_BUTTONS: Array<{
+  id: Exclude<MoverFilter, "all">;
+  label: string;
+  title: string;
+  activeClass: string;
+  hoverClass: string;
+}> = [
+  {
+    id: "winners",
+    label: "Winners",
+    title: "All six analysis columns green (Day, Wk, Mo, 24h, 7d, 30d)",
+    activeClass: "bg-emerald-500/20 border-emerald-400/40 text-emerald-300",
+    hoverClass: "hover:border-emerald-400/40 hover:text-emerald-300",
+  },
+  {
+    id: "second",
+    label: "Second Place",
+    title: "Five of six analysis columns green",
+    activeClass: "bg-teal-500/20 border-teal-400/40 text-teal-300",
+    hoverClass: "hover:border-teal-400/40 hover:text-teal-300",
+  },
+];
+
+function moverFilterEmptyMessage(filter: Exclude<MoverFilter, "all">): string {
+  switch (filter) {
+    case "winners":
+      return "No stocks have all six analysis columns green right now (Day, Wk, Mo, 24h, 7d, 30d).";
+    case "second":
+      return "No stocks have exactly five of six analysis columns green right now.";
+  }
 }
 
 type MoverSortKey =
@@ -179,15 +214,24 @@ export default function SentimentDashboard() {
   const [moverSortKey, setMoverSortKey] = useState<MoverSortKey>("velocity");
   const [moverSortDir, setMoverSortDir] = useState<SortDir>("desc");
   const [watchlist, setWatchlist] = useState<string[]>([]);
-  const [winnersOnly, setWinnersOnly] = useState(false);
+  const [moverFilter, setMoverFilter] = useState<MoverFilter>("all");
 
-  const sortedMovers = useMemo(() => {
+  const filteredMovers = useMemo(() => {
     if (!movers) return [];
-    const pool = winnersOnly
-      ? movers.movers.filter(isWinnerMover)
-      : movers.movers;
-    return sortMovers(pool, moverSortKey, moverSortDir);
-  }, [movers, moverSortKey, moverSortDir, winnersOnly]);
+    switch (moverFilter) {
+      case "winners":
+        return movers.movers.filter(isWinnerMover);
+      case "second":
+        return movers.movers.filter(isSecondPlaceMover);
+      default:
+        return movers.movers;
+    }
+  }, [movers, moverFilter]);
+
+  const sortedMovers = useMemo(
+    () => sortMovers(filteredMovers, moverSortKey, moverSortDir),
+    [filteredMovers, moverSortKey, moverSortDir]
+  );
 
   const watchingMovers = useMemo(() => {
     if (!movers) return [];
@@ -321,7 +365,7 @@ export default function SentimentDashboard() {
   );
 
   useEffect(() => {
-    if (view !== "movers") setWinnersOnly(false);
+    if (view !== "movers") setMoverFilter("all");
   }, [view]);
 
   useEffect(() => {
@@ -460,23 +504,30 @@ export default function SentimentDashboard() {
         )}
 
         {view === "movers" && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="mt-6 flex flex-wrap items-start justify-between gap-3">
             <p className="text-sm text-white/55 max-w-2xl">
               All tracked tickers from ApeWisdom (Reddit) and SwaggyStocks (WSB), ranked by
               sentiment velocity and mention momentum. Click a row for full multi-source analysis.
             </p>
-            <button
-              type="button"
-              title="Show stocks with Day, Wk, Mo, 24h, 7d, and 30d all green"
-              onClick={() => setWinnersOnly((on) => !on)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
-                winnersOnly
-                  ? "bg-emerald-500/20 border border-emerald-400/40 text-emerald-300"
-                  : "border border-white/15 text-white/70 hover:border-emerald-400/40 hover:text-emerald-300"
-              }`}
-            >
-              Winners
-            </button>
+            <div className="flex flex-wrap gap-2 shrink-0">
+              {MOVER_FILTER_BUTTONS.map((btn) => (
+                <button
+                  key={btn.id}
+                  type="button"
+                  title={btn.title}
+                  onClick={() =>
+                    setMoverFilter((current) => (current === btn.id ? "all" : btn.id))
+                  }
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition border ${
+                    moverFilter === btn.id
+                      ? btn.activeClass
+                      : `border-white/15 text-white/70 ${btn.hoverClass}`
+                  }`}
+                >
+                  {btn.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -661,10 +712,13 @@ export default function SentimentDashboard() {
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-white/45">
-                {winnersOnly ? (
+                {moverFilter !== "all" ? (
                   <>
-                    {sortedMovers.length} winner{sortedMovers.length === 1 ? "" : "s"} of{" "}
-                    {movers.totalAnalyzed} stocks
+                    {sortedMovers.length}{" "}
+                    {moverFilter === "winners"
+                      ? `winner${sortedMovers.length === 1 ? "" : "s"}`
+                      : "second-place"}{" "}
+                    of {movers.totalAnalyzed} stocks
                   </>
                 ) : (
                   <>{movers.totalAnalyzed} stocks analyzed</>
@@ -673,9 +727,9 @@ export default function SentimentDashboard() {
                 {lastRefresh ? formatTime(lastRefresh.toISOString()) : "—"}
               </p>
             </div>
-            {winnersOnly && sortedMovers.length === 0 && (
+            {moverFilter !== "all" && sortedMovers.length === 0 && (
               <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/50">
-                No stocks have all six analysis columns green right now (Day, Wk, Mo, 24h, 7d, 30d).
+                {moverFilterEmptyMessage(moverFilter)}
               </p>
             )}
             {sortedMovers.length > 0 && (

@@ -2,6 +2,15 @@
 
 const SCORE_GREEN_MIN = 0.12;
 
+export type MoverAnalysisColumns = {
+  dailyChange?: number;
+  weeklyChange?: number;
+  monthlyChange?: number;
+  h24Score: number;
+  weekScore: number;
+  monthScore: number;
+};
+
 export function isScoreGreen(score: number): boolean {
   return score >= SCORE_GREEN_MIN;
 }
@@ -10,22 +19,23 @@ export function isPctGreen(pct?: number): boolean {
   return pct != null && pct > 0;
 }
 
-export function isWinnerMover(m: {
-  dailyChange?: number;
-  weeklyChange?: number;
-  monthlyChange?: number;
-  h24Score: number;
-  weekScore: number;
-  monthScore: number;
-}): boolean {
-  return (
-    isPctGreen(m.dailyChange) &&
-    isPctGreen(m.weeklyChange) &&
-    isPctGreen(m.monthlyChange) &&
-    isScoreGreen(m.h24Score) &&
-    isScoreGreen(m.weekScore) &&
-    isScoreGreen(m.monthScore)
-  );
+export function countGreenColumns(m: MoverAnalysisColumns): number {
+  return [
+    isPctGreen(m.dailyChange),
+    isPctGreen(m.weeklyChange),
+    isPctGreen(m.monthlyChange),
+    isScoreGreen(m.h24Score),
+    isScoreGreen(m.weekScore),
+    isScoreGreen(m.monthScore),
+  ].filter(Boolean).length;
+}
+
+export function isWinnerMover(m: MoverAnalysisColumns): boolean {
+  return countGreenColumns(m) === 6;
+}
+
+export function isSecondPlaceMover(m: MoverAnalysisColumns): boolean {
+  return countGreenColumns(m) === 5;
 }
 
 export function formatSentimentScore(score: number): string {
