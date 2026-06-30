@@ -1,6 +1,8 @@
 import { fetchAllApeWisdomRows, fetchApeWisdomMention } from "./apewisdom";
 import { fetchAlphaVantageNews } from "./alphaVantage";
 import { fetchFinnhubSocial } from "./finnhubSocial";
+import { fetchNewsApi } from "./newsApi";
+import { fetchOptionsFlow } from "./optionsFlow";
 import { labelFromScore } from "./lexicon";
 import { buildSocialMover } from "./movers";
 import { fetchBulkPriceSnapshots, fetchPriceSnapshot } from "./prices";
@@ -17,6 +19,7 @@ import {
 import { fetchRedditMentions } from "./reddit";
 import { fetchStocktwits } from "./stocktwits";
 import { fetchSwaggyStocks, fetchAllSwaggyRows } from "./swaggystocks";
+import { fetchTwitterSentiment } from "./twitter";
 import type {
   MoversReport,
   SentimentMention,
@@ -27,16 +30,16 @@ import type {
   SourceBreakdown,
 } from "./types";
 import {
-  averageScore,
   filterMentionsBetweenDays,
   filterMentionsBetweenHours,
   filterMentionsByDays,
   filterMentionsByHours,
+  weightedAverageScore,
 } from "./utils";
 
 const SOURCE_LABELS: Record<SentimentSource, string> = {
   finnhub: "Finnhub wire headlines",
-  finnhub_social: "Finnhub Reddit/X social",
+  finnhub_social: "Finnhub Reddit social",
   google_news: "Google News",
   cnbc: "CNBC",
   marketwatch: "MarketWatch",
@@ -48,6 +51,9 @@ const SOURCE_LABELS: Record<SentimentSource, string> = {
   apewisdom: "ApeWisdom Reddit tracker",
   alpha_vantage: "Alpha Vantage news sentiment",
   swaggystocks: "SwaggyStocks WSB",
+  twitter: "X (Twitter) via Finnhub",
+  news_api: "NewsAPI (broad news)",
+  options_flow: "Options put/call flow",
 };
 
 const DEFAULT_UNIVERSE = [
@@ -83,7 +89,12 @@ function buildWarnings(): string[] {
   const warnings: string[] = [];
   if (!process.env.FINNHUB_API_KEY) {
     warnings.push(
-      "FINNHUB_API_KEY not set — Finnhub headlines & social sentiment skipped. Recommended for news + Reddit/X aggregates."
+      "FINNHUB_API_KEY not set — Finnhub headlines, Reddit social, and X (Twitter) sentiment skipped."
+    );
+  }
+  if (!process.env.NEWS_API_KEY) {
+    warnings.push(
+      "NEWS_API_KEY not set — NewsAPI broad news coverage skipped. Free tier at newsapi.org."
     );
   }
   if (!process.env.ALPHA_VANTAGE_API_KEY) {
@@ -109,6 +120,9 @@ export async function fetchAllMentions(symbol: string): Promise<SentimentMention
     apewisdom,
     swaggystocks,
     alphaVantage,
+    twitter,
+    newsApi,
+    optionsFlow,
   ] = await Promise.all([
     fetchGoogleNews(symbol),
     fetchCnbc(symbol),
@@ -123,6 +137,9 @@ export async function fetchAllMentions(symbol: string): Promise<SentimentMention
     fetchApeWisdomMention(symbol),
     fetchSwaggyStocks(symbol),
     fetchAlphaVantageNews(symbol),
+    fetchTwitterSentiment(symbol, 30),
+    fetchNewsApi(symbol),
+    fetchOptionsFlow(symbol),
   ]);
 
   return [
@@ -139,6 +156,9 @@ export async function fetchAllMentions(symbol: string): Promise<SentimentMention
     ...apewisdom,
     ...swaggystocks,
     ...alphaVantage,
+    ...twitter,
+    ...newsApi,
+    ...optionsFlow,
   ].sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
 }
 
@@ -147,8 +167,8 @@ function computeVelocity(
   priorMentions: SentimentMention[],
   period: SentimentPeriod = "week"
 ) {
-  const weekScore = averageScore(periodMentions);
-  const priorScore = averageScore(priorMentions);
+  const weekScore = weightedAverageScore(periodMentions);
+  const priorScore = weightedAverageScore(priorMentions);
   const velocity = weekScore - priorScore;
 
   const periodCount = periodMentions.length;
@@ -236,7 +256,7 @@ export async function analyzeStockSentiment(
     );
   }
 
-  const overallScore = averageScore(periodMentions);
+  const overallScore = weightedAverageScore(periodMentions);
   const { priorScore, velocity, mentionVelocity } = computeVelocity(
     periodMentions,
     priorMentions,

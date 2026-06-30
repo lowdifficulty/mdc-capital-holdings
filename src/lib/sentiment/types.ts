@@ -15,7 +15,10 @@ export type SentimentSource =
   | "stocktwits"
   | "apewisdom"
   | "alpha_vantage"
-  | "swaggystocks";
+  | "swaggystocks"
+  | "twitter"
+  | "news_api"
+  | "options_flow";
 
 export interface SentimentMention {
   id: string;

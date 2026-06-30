@@ -1,8 +1,23 @@
-import type { SentimentMention, SentimentLabel } from "./types";
+import type { SentimentMention, SentimentLabel, SentimentSource } from "./types";
 import { labelFromScore } from "./lexicon";
 
 export const MS_PER_DAY = 86_400_000;
 export const MS_PER_HOUR = 3_600_000;
+
+/** Reddit-derived sources count at 1/10 influence vs other platforms in aggregate scores. */
+export const REDDIT_INFLUENCE_WEIGHT = 0.1;
+
+const REDDIT_SOURCES = new Set<SentimentSource>([
+  "reddit",
+  "apewisdom",
+  "swaggystocks",
+  "finnhub_social",
+]);
+
+export function mentionInfluenceWeight(mention: SentimentMention): number {
+  if (REDDIT_SOURCES.has(mention.source)) return REDDIT_INFLUENCE_WEIGHT;
+  return 1;
+}
 
 export function parseMentionDate(iso?: string): Date | null {
   if (!iso) return null;
@@ -73,13 +88,25 @@ export function averageScore(mentions: SentimentMention[]): number {
   return mentions.reduce((sum, m) => sum + m.score, 0) / mentions.length;
 }
 
+export function weightedAverageScore(mentions: SentimentMention[]): number {
+  if (!mentions.length) return 0;
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const m of mentions) {
+    const w = mentionInfluenceWeight(m);
+    weightedSum += m.score * w;
+    totalWeight += w;
+  }
+  return totalWeight > 0 ? weightedSum / totalWeight : 0;
+}
+
 export function buildReportFromMentions(
   mentions: SentimentMention[],
   symbol: string,
   analyzedAt: string,
   warnings: string[]
 ) {
-  const overallScore = averageScore(mentions);
+  const overallScore = weightedAverageScore(mentions);
   return {
     symbol,
     analyzedAt,

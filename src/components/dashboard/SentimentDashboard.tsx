@@ -6,6 +6,7 @@ import Link from "next/link";
 import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix";
 import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
 import MoversMobileList from "@/components/dashboard/MoversMobileList";
+import PositionsPanel from "@/components/dashboard/PositionsPanel";
 import {
   formatSentimentScore,
   isSecondPlaceMover,
@@ -24,7 +25,7 @@ import { readMoversCache, writeMoversCache, clearMoversCache } from "@/lib/dashb
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
 
-type DashboardView = SentimentPeriod | "movers";
+type DashboardView = SentimentPeriod | "movers" | "positions";
 
 function periodTitle(period: SentimentPeriod): string {
   if (period === "24h") return "24 hr sentiment";
@@ -45,6 +46,7 @@ function priorPeriodLabel(period: SentimentPeriod): string {
 }
 
 function loadingPeriodLabel(view: DashboardView): string {
+  if (view === "positions") return "Loading your positions…";
   if (view === "movers") return "Loading all tracked stocks…";
   if (view === "24h") return "Analyzing 24 hr sentiment…";
   if (view === "week") return "Analyzing 7-day sentiment…";
@@ -224,6 +226,7 @@ export default function SentimentDashboard() {
   const [moverSortKey, setMoverSortKey] = useState<MoverSortKey>("velocity");
   const [moverSortDir, setMoverSortDir] = useState<SortDir>("desc");
   const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [positionSymbols, setPositionSymbols] = useState<string[]>([]);
   const [moverFilter, setMoverFilter] = useState<MoverFilter>("all");
 
   useEffect(() => {
@@ -340,6 +343,39 @@ export default function SentimentDashboard() {
     else void addToWatching(sym);
   }
 
+  const loadPositionSymbols = useCallback(async () => {
+    try {
+      const res = await fetch("/api/positions", { credentials: "same-origin" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { positions?: Array<{ symbol: string }> };
+      setPositionSymbols((data.positions ?? []).map((p) => p.symbol.toUpperCase()));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  async function addToPositions(symbol: string, e?: React.MouseEvent) {
+    e?.preventDefault();
+    e?.stopPropagation();
+    const sym = symbol.toUpperCase();
+    if (positionSymbols.includes(sym)) return;
+    const prev = positionSymbols;
+    setPositionSymbols([...prev, sym]);
+    try {
+      const res = await fetch("/api/positions", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: sym }),
+      });
+      if (!res.ok) throw new Error("failed");
+      const data = (await res.json()) as { positions: Array<{ symbol: string }> };
+      setPositionSymbols(data.positions.map((p) => p.symbol.toUpperCase()));
+    } catch {
+      setPositionSymbols(prev);
+    }
+  }
+
   function toggleMoverExpand(m: SentimentMover) {
     setExpandedSymbol((prev) => (prev === m.symbol ? null : m.symbol));
   }
@@ -378,6 +414,11 @@ export default function SentimentDashboard() {
           moversRef.current = data;
           writeMoversCache(data);
           setLastRefresh(new Date(data.analyzedAt));
+          return;
+        }
+
+        if (view === "positions") {
+          if (!silent) setLoading(false);
           return;
         }
 
@@ -420,15 +461,16 @@ export default function SentimentDashboard() {
   }, [cacheReady, loadDashboardData]);
 
   useEffect(() => {
-    if (view !== "movers") setMoverFilter("all");
+    if (view !== "movers" && view !== "positions") setMoverFilter("all");
   }, [view]);
 
   useEffect(() => {
     void loadWatchlist();
-  }, [loadWatchlist]);
+    void loadPositionSymbols();
+  }, [loadWatchlist, loadPositionSymbols]);
 
   useEffect(() => {
-    if (!autoRefresh || view === "movers") return;
+    if (!autoRefresh || view === "movers" || view === "positions") return;
     const id = window.setInterval(
       () => void loadDashboardData({ force: true, silent: true }),
       POLL_MS
@@ -469,7 +511,7 @@ export default function SentimentDashboard() {
             </Link>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">Market Dashboard</p>
-              <p className="hidden text-xs text-white/50 sm:block">Movers · 24 hr · Week · Month</p>
+              <p className="hidden text-xs text-white/50 sm:block">Positions · Movers · 24 hr · Week · Month</p>
             </div>
           </div>
           <button
@@ -486,6 +528,7 @@ export default function SentimentDashboard() {
         <div className="-mx-4 flex gap-2 overflow-x-auto border-b border-white/10 px-4 pb-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
           {(
             [
+              ["positions", "My Positions"],
               ["movers", "Movers"],
               ["24h", "24 hr"],
               ["week", "Week"],
@@ -507,7 +550,7 @@ export default function SentimentDashboard() {
           ))}
         </div>
 
-        {view !== "movers" && (
+        {view !== "movers" && view !== "positions" && (
           <>
             <form onSubmit={handleAnalyze} className="mt-6 flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
@@ -562,6 +605,10 @@ export default function SentimentDashboard() {
           </>
         )}
 
+        {view === "positions" && (
+          <PositionsPanel onPositionsChange={setPositionSymbols} />
+        )}
+
         {view === "movers" && (
           <div className="mt-6 flex flex-wrap items-start justify-between gap-3">
             <p className="text-sm text-white/55 max-w-2xl">
@@ -606,7 +653,7 @@ export default function SentimentDashboard() {
           </p>
         )}
 
-        {report && view !== "movers" && (
+        {report && view !== "movers" && view !== "positions" && (
           <div className="mt-6 space-y-6 sm:mt-8 sm:space-y-8">
             <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:col-span-1">
@@ -749,6 +796,23 @@ export default function SentimentDashboard() {
                       </span>
                       <button
                         type="button"
+                        aria-label={
+                          positionSymbols.includes(m.symbol)
+                            ? `${m.symbol} is in your positions`
+                            : `Add ${m.symbol} to positions`
+                        }
+                        onClick={(e) => void addToPositions(m.symbol, e)}
+                        disabled={positionSymbols.includes(m.symbol)}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs font-bold transition ${
+                          positionSymbols.includes(m.symbol)
+                            ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+                            : "border-white/25 text-white/60 hover:border-emerald-400 hover:text-emerald-300"
+                        }`}
+                      >
+                        {positionSymbols.includes(m.symbol) ? "✓" : "+"}
+                      </button>
+                      <button
+                        type="button"
                         aria-label={`Remove ${m.symbol} from Watching`}
                         onClick={(e) => toggleWatching(m.symbol, e)}
                         className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:bg-white/10 hover:text-white"
@@ -763,6 +827,23 @@ export default function SentimentDashboard() {
                       className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-navy/60 pl-3 pr-1.5 py-1.5 text-sm"
                     >
                       <span className="font-semibold">{sym}</span>
+                      <button
+                        type="button"
+                        aria-label={
+                          positionSymbols.includes(sym)
+                            ? `${sym} is in your positions`
+                            : `Add ${sym} to positions`
+                        }
+                        onClick={(e) => void addToPositions(sym, e)}
+                        disabled={positionSymbols.includes(sym)}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border text-xs font-bold transition ${
+                          positionSymbols.includes(sym)
+                            ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+                            : "border-white/25 text-white/60 hover:border-emerald-400 hover:text-emerald-300"
+                        }`}
+                      >
+                        {positionSymbols.includes(sym) ? "✓" : "+"}
+                      </button>
                       <button
                         type="button"
                         aria-label={`Remove ${sym} from Watching`}
@@ -976,7 +1057,8 @@ export default function SentimentDashboard() {
             <p className="text-xs text-white/40">
               <span className="md:hidden">Tap a card to expand the chart. Use </span>
               <span className="hidden md:inline">Click a column header to sort. Click a row to expand the live price chart. Use </span>
-              <span className="text-white/60">+</span> to add stocks to Watching.
+              <span className="text-white/60">+</span> to add stocks to Watching. In Watching, use{" "}
+              <span className="text-emerald-300/80">+</span> to move a stock into My Positions.
             </p>
           </div>
         )}

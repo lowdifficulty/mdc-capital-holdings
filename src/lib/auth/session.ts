@@ -1,6 +1,7 @@
 import "server-only";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
+import type { Position } from "@/lib/positions/types";
 
 export interface SessionUser {
   email: string;
@@ -10,6 +11,7 @@ export interface SessionUser {
 export interface SessionData {
   user?: SessionUser;
   watchlist?: string[];
+  positions?: Position[];
 }
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "1";

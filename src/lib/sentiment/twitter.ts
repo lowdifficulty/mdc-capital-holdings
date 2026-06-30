@@ -12,7 +12,8 @@ interface FinnhubSocialRow {
   score: number;
 }
 
-export async function fetchFinnhubSocial(
+/** X (Twitter) sentiment via Finnhub social-sentiment API. */
+export async function fetchTwitterSentiment(
   symbol: string,
   days = 30
 ): Promise<SentimentMention[]> {
@@ -27,20 +28,20 @@ export async function fetchFinnhubSocial(
     const res = await fetch(url, { next: { revalidate: 0 } });
     if (!res.ok) return [];
 
-    const data = (await res.json()) as { reddit?: FinnhubSocialRow[] };
-    const rows = data.reddit ?? [];
+    const data = (await res.json()) as { twitter?: FinnhubSocialRow[] };
+    const rows = data.twitter ?? [];
 
     return rows.slice(-14).map((row) => {
       const score = Math.max(-1, Math.min(1, row.score ?? 0));
       return {
-        id: `finnhub_social-reddit-${row.atTime}`,
-        source: "finnhub_social" as const,
-        title: `${symbol} Reddit sentiment — ${row.mention} mentions`,
+        id: `twitter-${row.atTime}`,
+        source: "twitter" as const,
+        title: `${symbol} on X — ${row.mention} mentions`,
         summary: `Positive: ${row.positiveMention}, Negative: ${row.negativeMention}, Score: ${score.toFixed(2)}`,
         publishedAt: new Date(row.atTime).toISOString(),
         score,
         label: labelFromScore(score),
-        meta: { mentions: row.mention, platform: "reddit" },
+        meta: { mentions: row.mention },
       };
     });
   } catch {
