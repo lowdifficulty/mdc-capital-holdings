@@ -1,5 +1,6 @@
 import "server-only";
 import { fetchBulkPriceSnapshots } from "@/lib/sentiment/prices";
+import { PORTFOLIO_CASH, totalCashBalance } from "./portfolioSeed";
 import type { Position, PositionWithQuote, PositionsReport, PositionsSummary } from "./types";
 
 function priorClose(price: number, dailyChangePct: number): number {
@@ -27,6 +28,8 @@ function buildSummary(positions: PositionWithQuote[]): PositionsSummary {
   const totalDailyPnLPct =
     priorValue > 0 ? (totalDailyPnL / priorValue) * 100 : 0;
 
+  const cashBalance = totalCashBalance();
+
   return {
     totalMarketValue,
     totalCostBasis,
@@ -34,6 +37,10 @@ function buildSummary(positions: PositionWithQuote[]): PositionsSummary {
     totalUnrealizedPnLPct,
     totalDailyPnL,
     totalDailyPnLPct,
+    cashBalance,
+    cashFidelity: PORTFOLIO_CASH.fidelity,
+    cashTrading: PORTFOLIO_CASH.trading,
+    totalPortfolioValue: totalMarketValue + cashBalance,
   };
 }
 

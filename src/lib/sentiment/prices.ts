@@ -1,7 +1,15 @@
+import "server-only";
 import type { PriceHistory, PriceSnapshot } from "./types";
 import { toTradingViewSymbol } from "./tradingViewSymbol";
-
-const UA = "MDC-Capital-Sentiment/1.0";
+import { fetchYahooChartData } from "./yahooSession";
+import {
+  type DailyBar,
+  getCacheEntry,
+  getFreshSnapshots,
+  needsBarRefresh,
+  upsertManySymbolEntries,
+  upsertSymbolEntry,
+} from "./priceCache";
 
 interface YahooChartMeta {
   regularMarketPrice?: number;
@@ -11,10 +19,18 @@ interface YahooChartMeta {
   exchangeName?: string;
 }
 
-interface YahooChartResult {
+export interface YahooChartResult {
   meta?: YahooChartMeta;
   timestamp?: number[];
-  indicators?: { quote?: Array<{ close?: (number | null)[] }> };
+  indicators?: {
+    quote?: Array<{
+      close?: (number | null)[];
+      open?: (number | null)[];
+      high?: (number | null)[];
+      low?: (number | null)[];
+      volume?: (number | null)[];
+    }>;
+  };
 }
 
 interface YahooChartResponse {
@@ -54,16 +70,37 @@ function oldestClose(closes: (number | null)[]): number | null {
   return null;
 }
 
+export function extractDailyBars(result: YahooChartResult): DailyBar[] {
+  const timestamps = result.timestamp ?? [];
+  const quote = result.indicators?.quote?.[0];
+  const closes = quote?.close ?? [];
+  const opens = quote?.open ?? [];
+  const highs = quote?.high ?? [];
+  const lows = quote?.low ?? [];
+  const volumes = quote?.volume ?? [];
+
+  const bars: DailyBar[] = [];
+  for (let i = 0; i < timestamps.length; i++) {
+    const c = closes[i];
+    if (c == null) continue;
+    const bar: DailyBar = { t: timestamps[i], c };
+    const o = opens[i];
+    const h = highs[i];
+    const l = lows[i];
+    const v = volumes[i];
+    if (o != null) bar.o = o;
+    if (h != null) bar.h = h;
+    if (l != null) bar.l = l;
+    if (v != null) bar.v = v;
+    bars.push(bar);
+  }
+  return bars;
+}
+
 async function fetchYahooChart(symbol: string, range: string): Promise<YahooChartResult | null> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1d`;
   try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA },
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as YahooChartResponse;
-    return data.chart?.result?.[0] ?? null;
+    const data = (await fetchYahooChartData(symbol, { range, interval: "1d" })) as YahooChartResponse;
+    return data?.chart?.result?.[0] ?? null;
   } catch {
     return null;
   }
@@ -73,11 +110,9 @@ function resolvePriorSessionClose(
   meta: YahooChartMeta | undefined,
   closes: (number | null)[]
 ): number | null {
-  // previousClose is the prior session close when Yahoo provides it.
   if (meta?.previousClose != null && meta.previousClose > 0) {
     return meta.previousClose;
   }
-  // chartPreviousClose is the chart range baseline, not yesterday — do not use for day %.
   if (closes.length >= 2) {
     const priorBar = closes[closes.length - 2];
     if (priorBar != null && priorBar > 0) return priorBar;
@@ -85,7 +120,7 @@ function resolvePriorSessionClose(
   return null;
 }
 
-function buildPriceHistory(result: YahooChartResult, symbol: string): PriceHistory | null {
+export function buildPriceHistory(result: YahooChartResult, symbol: string): PriceHistory | null {
   const meta = result.meta;
   const timestamps = result.timestamp ?? [];
   const closes = result.indicators?.quote?.[0]?.close ?? [];
@@ -115,40 +150,123 @@ function buildPriceHistory(result: YahooChartResult, symbol: string): PriceHisto
   };
 }
 
-export async function fetchPriceSnapshot(symbol: string): Promise<PriceSnapshot | null> {
-  const result = await fetchYahooChart(symbol, "1y");
-  if (!result) return null;
-  const history = buildPriceHistory(result, symbol);
-  if (!history) return null;
+function buildPriceHistoryFromBars(bars: DailyBar[], symbol: string): PriceHistory | null {
+  if (!bars.length) return null;
+  const timestamps = bars.map((b) => b.t);
+  const closes = bars.map((b) => b.c);
+  return buildPriceHistory(
+    {
+      timestamp: timestamps,
+      indicators: { quote: [{ close: closes }] },
+    },
+    symbol
+  );
+}
+
+function snapshotFromHistory(history: PriceHistory): PriceSnapshot {
   const { price, dailyChange, weeklyChange, monthlyChange, tvSymbol } = history;
   return { price, dailyChange, weeklyChange, monthlyChange, tvSymbol };
 }
 
+async function fetchAndCacheSymbol(
+  symbol: string,
+  range: "1y" | "5y"
+): Promise<{ snapshot: PriceSnapshot | null; history: PriceHistory | null; dailyBars: DailyBar[] }> {
+  const result = await fetchYahooChart(symbol, range);
+  if (!result) return { snapshot: null, history: null, dailyBars: [] };
+
+  const dailyBars = extractDailyBars(result);
+  const history = buildPriceHistory(result, symbol);
+  const snapshot = history ? snapshotFromHistory(history) : null;
+  return { snapshot, history, dailyBars };
+}
+
+export async function fetchPriceSnapshot(symbol: string): Promise<PriceSnapshot | null> {
+  const sym = symbol.toUpperCase();
+  const { hits } = await getFreshSnapshots([sym]);
+  const cached = hits.get(sym);
+  if (cached) return cached;
+
+  const { snapshot, dailyBars } = await fetchAndCacheSymbol(sym, "1y");
+  if (!snapshot) return null;
+
+  await upsertSymbolEntry(sym, { snapshot, dailyBars });
+  return snapshot;
+}
+
 export async function fetchPriceHistory(symbol: string): Promise<PriceHistory | null> {
-  const result = await fetchYahooChart(symbol, "5y");
-  if (!result) return null;
-  return buildPriceHistory(result, symbol);
+  const sym = symbol.toUpperCase();
+  const { history, dailyBars } = await fetchAndCacheSymbol(sym, "5y");
+  if (!history) return null;
+
+  await upsertSymbolEntry(sym, { history, dailyBars, snapshot: snapshotFromHistory(history) });
+  return history;
+}
+
+export interface BulkPriceResult {
+  prices: Map<string, PriceSnapshot>;
+  cached: number;
+  fetched: number;
 }
 
 export async function fetchBulkPriceSnapshots(
   symbols: string[],
-  concurrency = 8
+  concurrency = 4
 ): Promise<Map<string, PriceSnapshot>> {
-  const out = new Map<string, PriceSnapshot>();
-  const unique = [...new Set(symbols.map((s) => s.toUpperCase()))];
+  const result = await fetchBulkPriceSnapshotsWithStats(symbols, concurrency);
+  return result.prices;
+}
 
-  for (let i = 0; i < unique.length; i += concurrency) {
-    const batch = unique.slice(i, i + concurrency);
+export async function fetchBulkPriceSnapshotsWithStats(
+  symbols: string[],
+  concurrency = 4
+): Promise<BulkPriceResult> {
+  const unique = [...new Set(symbols.map((s) => s.toUpperCase()))];
+  const { hits, misses } = await getFreshSnapshots(unique);
+
+  const out = new Map<string, PriceSnapshot>(hits);
+  if (!misses.length) {
+    return { prices: out, cached: hits.size, fetched: 0 };
+  }
+
+  const patches = new Map<string, { snapshot?: PriceSnapshot; dailyBars?: DailyBar[] }>();
+
+  for (let i = 0; i < misses.length; i += concurrency) {
+    const batch = misses.slice(i, i + concurrency);
     const results = await Promise.all(
       batch.map(async (symbol) => {
-        const snap = await fetchPriceSnapshot(symbol);
-        return { symbol, snap };
+        const entry = await getCacheEntry(symbol);
+        if (entry && !needsBarRefresh(entry) && entry.dailyBars.length >= 5) {
+          const history = buildPriceHistoryFromBars(entry.dailyBars, symbol);
+          if (history) {
+            return {
+              symbol,
+              snapshot: snapshotFromHistory(history),
+              dailyBars: [] as DailyBar[],
+            };
+          }
+        }
+        const fetched = await fetchAndCacheSymbol(symbol, "1y");
+        return {
+          symbol,
+          snapshot: fetched.snapshot,
+          dailyBars: fetched.dailyBars,
+        };
       })
     );
-    for (const { symbol, snap } of results) {
-      if (snap) out.set(symbol, snap);
+
+    for (const { symbol, snapshot, dailyBars } of results) {
+      if (!snapshot) continue;
+      out.set(symbol, snapshot);
+      patches.set(symbol, { snapshot, dailyBars: dailyBars.length ? dailyBars : undefined });
     }
   }
 
-  return out;
+  await upsertManySymbolEntries(patches);
+
+  return {
+    prices: out,
+    cached: hits.size,
+    fetched: patches.size,
+  };
 }

@@ -7,6 +7,7 @@ import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix"
 import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
 import MoversMobileList from "@/components/dashboard/MoversMobileList";
 import PositionsPanel from "@/components/dashboard/PositionsPanel";
+import QuiverAnalysisPanel from "@/components/dashboard/QuiverAnalysisPanel";
 import {
   formatSentimentScore,
   formatMentions,
@@ -26,7 +27,7 @@ import { readMoversCache, writeMoversCache, clearMoversCache } from "@/lib/dashb
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
 
-type DashboardView = SentimentPeriod | "movers" | "positions";
+type DashboardView = SentimentPeriod | "movers" | "positions" | "quiver";
 
 function periodTitle(period: SentimentPeriod): string {
   if (period === "24h") return "24 hr sentiment";
@@ -48,6 +49,7 @@ function priorPeriodLabel(period: SentimentPeriod): string {
 
 function loadingPeriodLabel(view: DashboardView): string {
   if (view === "positions") return "Loading your positions…";
+  if (view === "quiver") return "Loading Quiver analysis…";
   if (view === "movers") return "Loading all tracked stocks…";
   if (view === "24h") return "Analyzing 24 hr sentiment…";
   if (view === "week") return "Analyzing 7-day sentiment…";
@@ -210,7 +212,7 @@ function reportCacheKey(symbol: string, period: SentimentPeriod): string {
 
 export default function SentimentDashboard() {
   const router = useRouter();
-  const [view, setView] = useState<DashboardView>("movers");
+  const [view, setView] = useState<DashboardView>("positions");
   const [symbol, setSymbol] = useState("AAPL");
   const [draft, setDraft] = useState("AAPL");
   const [report, setReport] = useState<SentimentReport | null>(null);
@@ -418,7 +420,7 @@ export default function SentimentDashboard() {
           return;
         }
 
-        if (view === "positions") {
+        if (view === "positions" || view === "quiver") {
           if (!silent) setLoading(false);
           return;
         }
@@ -462,7 +464,7 @@ export default function SentimentDashboard() {
   }, [cacheReady, loadDashboardData]);
 
   useEffect(() => {
-    if (view !== "movers" && view !== "positions") setMoverFilter("all");
+    if (view !== "movers" && view !== "positions" && view !== "quiver") setMoverFilter("all");
   }, [view]);
 
   useEffect(() => {
@@ -471,7 +473,7 @@ export default function SentimentDashboard() {
   }, [loadWatchlist, loadPositionSymbols]);
 
   useEffect(() => {
-    if (!autoRefresh || view === "movers" || view === "positions") return;
+    if (!autoRefresh || view === "movers" || view === "positions" || view === "quiver") return;
     const id = window.setInterval(
       () => void loadDashboardData({ force: true, silent: true }),
       POLL_MS
@@ -530,6 +532,7 @@ export default function SentimentDashboard() {
           {(
             [
               ["positions", "My Positions"],
+              ["quiver", "QuiverQuant"],
               ["movers", "Movers"],
               ["24h", "24 hr"],
               ["week", "Week"],
@@ -551,7 +554,7 @@ export default function SentimentDashboard() {
           ))}
         </div>
 
-        {view !== "movers" && view !== "positions" && (
+        {view !== "movers" && view !== "positions" && view !== "quiver" && (
           <>
             <form onSubmit={handleAnalyze} className="mt-6 flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
@@ -618,6 +621,8 @@ export default function SentimentDashboard() {
           />
         )}
 
+        {view === "quiver" && <QuiverAnalysisPanel />}
+
         {view === "movers" && (
           <div className="mt-6 flex flex-wrap items-start justify-between gap-3">
             <p className="text-sm text-white/55 max-w-2xl">
@@ -656,13 +661,13 @@ export default function SentimentDashboard() {
 
         {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
 
-        {loading && !report && !movers && (
+        {loading && !report && !movers && view !== "positions" && view !== "quiver" && (
           <p className="mt-12 text-center text-white/50">
             {loadingPeriodLabel(view)}
           </p>
         )}
 
-        {report && view !== "movers" && view !== "positions" && (
+        {report && view !== "movers" && view !== "positions" && view !== "quiver" && (
           <div className="mt-6 space-y-6 sm:mt-8 sm:space-y-8">
             <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:col-span-1">

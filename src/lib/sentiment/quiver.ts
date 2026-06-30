@@ -8,9 +8,7 @@ const MAX_ROWS_PER_DATASET = 40;
 
 type QuiverRow = Record<string, unknown>;
 
-function token(): string | null {
-  return process.env.QUIVER_API_TOKEN?.trim() || null;
-}
+import { getQuiverApiKey } from "@/lib/quiver/env";
 
 function quiverHeaders(auth: string): HeadersInit {
   return {
@@ -353,7 +351,7 @@ function mapSec13fChanges(ticker: string, data: unknown): SentimentMention[] {
 
 /** Quiver Quantitative alternative data (news, WSB, congress, insiders, etc.). */
 export async function fetchQuiver(symbol: string): Promise<SentimentMention[]> {
-  const auth = token();
+  const auth = getQuiverApiKey();
   if (!auth) return [];
 
   const ticker = symbol.toUpperCase();

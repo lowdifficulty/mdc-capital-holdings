@@ -5,7 +5,8 @@ import { fetchNewsApi } from "./newsApi";
 import { fetchOptionsFlow } from "./optionsFlow";
 import { labelFromScore } from "./lexicon";
 import { buildSocialMover } from "./movers";
-import { fetchBulkPriceSnapshots, fetchPriceSnapshot } from "./prices";
+import { fetchBulkPriceSnapshotsWithStats, fetchPriceSnapshot } from "./prices";
+import { getCacheStats } from "./priceCache";
 import { buildSourceMatrix } from "./sourceMatrix";
 import {
   fetchCnbc,
@@ -104,9 +105,9 @@ function buildWarnings(): string[] {
       "ALPHA_VANTAGE_API_KEY not set — Alpha Vantage ticker news sentiment skipped. Free tier available at alphavantage.co."
     );
   }
-  if (!process.env.QUIVER_API_TOKEN) {
+  if (!process.env.QUIVER_API_KEY && !process.env.QUIVER_API_TOKEN) {
     warnings.push(
-      "QUIVER_API_TOKEN not set — Quiver news, WSB, congress trades, insiders, and alt-data skipped."
+      "QUIVER_API_KEY not set — Quiver news, WSB, congress trades, insiders, and alt-data skipped."
     );
   }
   return warnings;
@@ -326,7 +327,8 @@ export async function analyzeMovers(): Promise<MoversReport> {
     .filter((m): m is SentimentMover => m !== null)
     .sort((a, b) => Math.abs(b.moverScore) - Math.abs(a.moverScore));
 
-  const priceMap = await fetchBulkPriceSnapshots(movers.map((m) => m.symbol));
+  const { prices: priceMap, cached: pricesCached, fetched: pricesFetched } =
+    await fetchBulkPriceSnapshotsWithStats(movers.map((m) => m.symbol));
   const moversWithPrices = movers.map((m) => {
     const p = priceMap.get(m.symbol);
     if (!p) return m;
@@ -343,8 +345,9 @@ export async function analyzeMovers(): Promise<MoversReport> {
   if (!moversWithPrices.length) {
     warnings.push("No mover data found. ApeWisdom / SwaggyStocks may be unreachable.");
   } else {
+    const cacheStats = await getCacheStats();
     warnings.push(
-      `Scanned ${moversWithPrices.length} tickers across ApeWisdom (${apeRows.length}) + SwaggyStocks (${swaggyRows.length}). Prices from Yahoo Finance. Click a row to expand the live chart.`
+      `Scanned ${moversWithPrices.length} tickers across ApeWisdom (${apeRows.length}) + SwaggyStocks (${swaggyRows.length}). Prices: ${pricesCached} cached, ${pricesFetched} refreshed (${cacheStats.symbols} symbols / ${cacheStats.dailyBars} daily bars on file). Click a row to expand the live chart.`
     );
   }
 

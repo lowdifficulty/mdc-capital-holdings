@@ -66,6 +66,99 @@ function SentimentBadge({ score }: { score?: number }) {
 
 type SentimentScores = { h24: number; week: number; month: number };
 
+type PositionSortKey =
+  | "symbol"
+  | "shares"
+  | "avgCost"
+  | "price"
+  | "marketValue"
+  | "unrealizedPnL"
+  | "unrealizedPnLPct"
+  | "h24"
+  | "week"
+  | "month";
+
+type SortDir = "asc" | "desc";
+
+function numOrMin(value?: number): number {
+  return value ?? Number.NEGATIVE_INFINITY;
+}
+
+function comparePositions(
+  a: PositionWithQuote,
+  b: PositionWithQuote,
+  key: PositionSortKey,
+  sentimentBySymbol: Map<string, SentimentScores>
+): number {
+  switch (key) {
+    case "symbol":
+      return a.symbol.localeCompare(b.symbol);
+    case "shares":
+      return a.shares - b.shares;
+    case "avgCost":
+      return a.avgCost - b.avgCost;
+    case "price":
+      return numOrMin(a.price) - numOrMin(b.price);
+    case "marketValue":
+      return numOrMin(a.marketValue) - numOrMin(b.marketValue);
+    case "unrealizedPnL":
+      return numOrMin(a.unrealizedPnL) - numOrMin(b.unrealizedPnL);
+    case "unrealizedPnLPct":
+      return numOrMin(a.unrealizedPnLPct) - numOrMin(b.unrealizedPnLPct);
+    case "h24":
+      return numOrMin(sentimentBySymbol.get(a.symbol)?.h24) - numOrMin(sentimentBySymbol.get(b.symbol)?.h24);
+    case "week":
+      return numOrMin(sentimentBySymbol.get(a.symbol)?.week) - numOrMin(sentimentBySymbol.get(b.symbol)?.week);
+    case "month":
+      return numOrMin(sentimentBySymbol.get(a.symbol)?.month) - numOrMin(sentimentBySymbol.get(b.symbol)?.month);
+  }
+}
+
+function sortPositions(
+  items: PositionWithQuote[],
+  key: PositionSortKey,
+  dir: SortDir,
+  sentimentBySymbol: Map<string, SentimentScores>
+): PositionWithQuote[] {
+  const sorted = [...items].sort((a, b) => comparePositions(a, b, key, sentimentBySymbol));
+  return dir === "desc" ? sorted.reverse() : sorted;
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  align = "left",
+  onSort,
+}: {
+  label: string;
+  sortKey: PositionSortKey;
+  activeKey: PositionSortKey;
+  dir: SortDir;
+  align?: "left" | "center" | "right";
+  onSort: (key: PositionSortKey) => void;
+}) {
+  const alignClass =
+    align === "center" ? "justify-center" : align === "right" ? "justify-end" : "justify-start";
+  const indicator = activeKey !== sortKey ? "↕" : dir === "asc" ? "↑" : "↓";
+
+  return (
+    <th className={`px-1.5 py-2 ${align === "center" ? "text-center" : align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex w-full items-center gap-0.5 transition hover:text-white ${alignClass} ${
+          activeKey === sortKey ? "text-white" : ""
+        }`}
+      >
+        {label}
+        <span className="opacity-50">{indicator}</span>
+      </button>
+    </th>
+  );
+}
+
 function PositionRow({
   position,
   sentiment,
@@ -100,9 +193,6 @@ function PositionRow({
       <td className={`px-1.5 py-2 tabular-nums ${pnlColor(position.unrealizedPnLPct)}`}>
         {formatPct(position.unrealizedPnLPct)}
       </td>
-      <td className={`px-1.5 py-2 tabular-nums font-medium ${pnlColor(position.dailyPnL)}`}>
-        {formatMoney(position.dailyPnL)}
-      </td>
       <td className="px-1 py-2">
         <SentimentBadge score={sentiment?.h24} />
       </td>
@@ -128,6 +218,8 @@ export default function PositionsPanel({
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [sortKey, setSortKey] = useState<PositionSortKey>("marketValue");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const sentimentBySymbol = useMemo(() => {
     const map = new Map<string, SentimentScores>();
@@ -136,6 +228,15 @@ export default function PositionsPanel({
     }
     return map;
   }, [movers]);
+
+  const handleSort = useCallback((key: PositionSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "symbol" ? "asc" : "desc");
+    }
+  }, [sortKey]);
 
   const loadPositions = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = opts?.silent ?? false;
@@ -176,12 +277,18 @@ export default function PositionsPanel({
     return () => window.clearInterval(id);
   }, [loadPositions]);
 
+  const positions = report?.positions ?? [];
+
+  const sortedPositions = useMemo(
+    () => sortPositions(positions, sortKey, sortDir, sentimentBySymbol),
+    [positions, sortKey, sortDir, sentimentBySymbol]
+  );
+
   if (loading && !report) {
     return <p className="mt-12 text-center text-white/50">Loading your positions…</p>;
   }
 
   const summary = report?.summary;
-  const positions = report?.positions ?? [];
 
   return (
     <div className="mt-6 space-y-6">
@@ -189,7 +296,7 @@ export default function PositionsPanel({
         <div className="max-w-2xl">
           <p className="text-sm text-white/55">
             Live P&amp;L across your holdings. Click a symbol for 24 hr sentiment analysis.
-            Prices auto-refresh every 60 seconds.
+            Click a column header to sort. Prices auto-refresh every 60 seconds.
           </p>
         </div>
         <button
@@ -210,6 +317,17 @@ export default function PositionsPanel({
       {positions.length > 0 && summary && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/45">Total portfolio</p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.totalPortfolioValue)}</p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/45">Cash</p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.cashBalance)}</p>
+            <p className="mt-1 text-[10px] text-white/40 tabular-nums">
+              Fidelity {formatMoney(summary.cashFidelity)} · Trading {formatMoney(summary.cashTrading)}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-white/45">Market value</p>
             <p className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(summary.totalMarketValue)}</p>
           </div>
@@ -229,18 +347,6 @@ export default function PositionsPanel({
               {formatPct(summary.totalUnrealizedPnLPct)}
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/45">Today&apos;s P&amp;L</p>
-            <p className={`mt-2 text-2xl font-semibold tabular-nums ${pnlColor(summary.totalDailyPnL)}`}>
-              {formatMoney(summary.totalDailyPnL)}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/45">Today</p>
-            <p className={`mt-2 text-2xl font-semibold tabular-nums ${pnlColor(summary.totalDailyPnLPct)}`}>
-              {formatPct(summary.totalDailyPnLPct)}
-            </p>
-          </div>
         </div>
       )}
 
@@ -252,7 +358,7 @@ export default function PositionsPanel({
       ) : (
         <>
           <div className="md:hidden space-y-3">
-            {positions.map((p) => {
+            {sortedPositions.map((p) => {
               const sentiment = sentimentBySymbol.get(p.symbol);
               return (
                 <article
@@ -272,17 +378,11 @@ export default function PositionsPanel({
                       {formatShares(p.shares)} @ {formatAvgCost(p.avgCost)}
                     </p>
                   </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <p className="text-white/40">P&amp;L</p>
                       <p className={`tabular-nums font-medium ${pnlColor(p.unrealizedPnL)}`}>
                         {formatMoney(p.unrealizedPnL)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-white/40">Today</p>
-                      <p className={`tabular-nums font-medium ${pnlColor(p.dailyPnL)}`}>
-                        {formatMoney(p.dailyPnL)}
                       </p>
                     </div>
                     <div>
@@ -302,35 +402,33 @@ export default function PositionsPanel({
           <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10">
             <table className="w-full table-fixed text-xs">
               <colgroup>
-                <col className="w-[7%]" />
-                <col className="w-[4%]" />
+                <col className="w-[8%]" />
                 <col className="w-[5%]" />
                 <col className="w-[6%]" />
                 <col className="w-[7%]" />
+                <col className="w-[8%]" />
+                <col className="w-[8%]" />
                 <col className="w-[7%]" />
                 <col className="w-[6%]" />
-                <col className="w-[7%]" />
-                <col className="w-[5%]" />
-                <col className="w-[5%]" />
-                <col className="w-[5%]" />
+                <col className="w-[6%]" />
+                <col className="w-[6%]" />
               </colgroup>
               <thead className="bg-navy/95 text-left text-[10px] uppercase tracking-wide text-white/50">
                 <tr>
-                  <th className="px-1.5 py-2">Sym</th>
-                  <th className="px-1 py-2 text-center">Qty</th>
-                  <th className="px-1 py-2 text-right">Avg</th>
-                  <th className="px-1.5 py-2">$</th>
-                  <th className="px-1.5 py-2">Value</th>
-                  <th className="px-1.5 py-2">P&amp;L</th>
-                  <th className="px-1.5 py-2">Ret</th>
-                  <th className="px-1.5 py-2">Day</th>
-                  <th className="px-1 py-2">24h</th>
-                  <th className="px-1 py-2">7d</th>
-                  <th className="px-1 py-2">30d</th>
+                  <SortableHeader label="Sym" sortKey="symbol" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Qty" sortKey="shares" activeKey={sortKey} dir={sortDir} align="center" onSort={handleSort} />
+                  <SortableHeader label="Avg" sortKey="avgCost" activeKey={sortKey} dir={sortDir} align="right" onSort={handleSort} />
+                  <SortableHeader label="$" sortKey="price" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Value" sortKey="marketValue" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="P&amp;L" sortKey="unrealizedPnL" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="Ret" sortKey="unrealizedPnLPct" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="24h" sortKey="h24" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="7d" sortKey="week" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortableHeader label="30d" sortKey="month" activeKey={sortKey} dir={sortDir} onSort={handleSort} />
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
-                {positions.map((p) => (
+                {sortedPositions.map((p) => (
                   <PositionRow
                     key={p.symbol}
                     position={p}

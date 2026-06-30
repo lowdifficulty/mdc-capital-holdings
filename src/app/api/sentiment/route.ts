@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/session";
 import { analyzeMovers, analyzeStockSentiment } from "@/lib/sentiment/analyze";
-import { fetchChartSeries, type ChartRangeId } from "@/lib/sentiment/chartData";
+import { fetchChartSeries } from "@/lib/sentiment/chartDataServer";
+import type { ChartRangeId } from "@/lib/sentiment/chartData";
 import { fetchPriceHistory } from "@/lib/sentiment/prices";
 import type { SentimentPeriod } from "@/lib/sentiment/types";
 

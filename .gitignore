@@ -24,6 +24,8 @@
 /data/users.json
 /data/intelligence/
 /data/positions.json
+/data/prices.json
+/data/quiver/
 
 # debug
 npm-debug.log*

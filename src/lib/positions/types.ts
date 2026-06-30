@@ -23,6 +23,10 @@ export interface PositionsSummary {
   totalUnrealizedPnLPct: number;
   totalDailyPnL: number;
   totalDailyPnLPct: number;
+  cashBalance: number;
+  cashFidelity: number;
+  cashTrading: number;
+  totalPortfolioValue: number;
 }
 
 export interface PositionsReport {

@@ -1,6 +1,5 @@
 import type { OHLCVBar } from "./types";
-
-const UA = "MDC-Capital-Sentiment/1.0";
+import { fetchYahooChartData } from "@/lib/sentiment/yahooSession";
 
 type Interval = "1m" | "5m" | "15m" | "1h" | "1d";
 
@@ -30,10 +29,9 @@ function parseYahooBars(timestamps: number[], quote: YahooQuote): OHLCVBar[] {
 }
 
 async function fetchYahooBars(symbol: string, interval: Interval, range: string): Promise<OHLCVBar[]> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
-  const res = await fetch(url, { headers: { "User-Agent": UA }, next: { revalidate: 0 } });
-  if (!res.ok) return [];
-  const data = await res.json();
+  const data = (await fetchYahooChartData(symbol, { interval, range })) as {
+    chart?: { result?: Array<{ timestamp?: number[]; indicators?: { quote?: YahooQuote[] } }> };
+  };
   const result = data?.chart?.result?.[0];
   if (!result) return [];
   const timestamps: number[] = result.timestamp ?? [];
