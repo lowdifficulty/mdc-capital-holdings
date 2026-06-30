@@ -569,14 +569,6 @@ export default function SentimentDashboard() {
               sentiment velocity and mention momentum. Click a row for full multi-source analysis.
             </p>
             <div className="flex flex-wrap gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => void refreshMovers()}
-                disabled={refreshing}
-                className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/70 transition hover:border-mdc-blue hover:text-white disabled:opacity-50"
-              >
-                {refreshing ? "Refreshing…" : "Refresh"}
-              </button>
               {MOVER_FILTER_BUTTONS.map((btn) => (
                 <button
                   key={btn.id}
@@ -594,6 +586,14 @@ export default function SentimentDashboard() {
                   {btn.label}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => void refreshMovers()}
+                disabled={refreshing}
+                className="rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/70 transition hover:border-mdc-blue hover:text-white disabled:opacity-50"
+              >
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </button>
             </div>
           </div>
         )}
