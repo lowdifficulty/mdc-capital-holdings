@@ -26,6 +26,7 @@
 /data/positions.json
 /data/prices.json
 /data/quiver/
+/data/quiver/.api-key
 
 # debug
 npm-debug.log*
