@@ -4,8 +4,8 @@ import {
   addToWatchlist,
   getWatchlist,
   removeFromWatchlist,
-  getRecommendationHistory,
-} from "@/lib/intelligence/store";
+} from "@/lib/watchlist/sessionStore";
+import { getRecommendationHistory } from "@/lib/intelligence/store";
 
 export async function GET() {
   try {

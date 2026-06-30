@@ -212,10 +212,10 @@ export default function SentimentDashboard() {
 
   const loadWatchlist = useCallback(async () => {
     try {
-      const res = await fetch("/api/watchlist");
+      const res = await fetch("/api/watchlist", { credentials: "same-origin" });
       if (!res.ok) return;
       const data = (await res.json()) as { watchlist?: string[] };
-      setWatchlist(data.watchlist ?? []);
+      setWatchlist((data.watchlist ?? []).map((s) => s.toUpperCase()));
     } catch {
       /* ignore */
     }
@@ -224,31 +224,46 @@ export default function SentimentDashboard() {
   async function addToWatching(symbol: string) {
     const sym = symbol.toUpperCase();
     if (watchlist.includes(sym)) return;
-    const res = await fetch("/api/watchlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ symbol: sym }),
-    });
-    if (res.ok) {
+    const prev = watchlist;
+    setWatchlist([...prev, sym]);
+    try {
+      const res = await fetch("/api/watchlist", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbol: sym }),
+      });
+      if (!res.ok) throw new Error("failed");
       const data = (await res.json()) as { watchlist: string[] };
-      setWatchlist(data.watchlist);
+      setWatchlist(data.watchlist.map((s) => s.toUpperCase()));
+    } catch {
+      setWatchlist(prev);
     }
   }
 
   async function removeFromWatching(symbol: string) {
-    const res = await fetch(`/api/watchlist?symbol=${encodeURIComponent(symbol)}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
+    const sym = symbol.toUpperCase();
+    const prev = watchlist;
+    setWatchlist(prev.filter((s) => s !== sym));
+    try {
+      const res = await fetch(`/api/watchlist?symbol=${encodeURIComponent(sym)}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
+      if (!res.ok) throw new Error("failed");
       const data = (await res.json()) as { watchlist: string[] };
-      setWatchlist(data.watchlist);
+      setWatchlist(data.watchlist.map((s) => s.toUpperCase()));
+    } catch {
+      setWatchlist(prev);
     }
   }
 
   function toggleWatching(symbol: string, e: React.MouseEvent) {
+    e.preventDefault();
     e.stopPropagation();
-    if (watchlist.includes(symbol.toUpperCase())) void removeFromWatching(symbol);
-    else void addToWatching(symbol);
+    const sym = symbol.toUpperCase();
+    if (watchlist.includes(sym)) void removeFromWatching(sym);
+    else void addToWatching(sym);
   }
 
   function toggleMoverExpand(m: SentimentMover) {
@@ -748,18 +763,18 @@ export default function SentimentDashboard() {
                         <button
                           type="button"
                           aria-label={
-                            watchlist.includes(m.symbol)
+                            watchlist.includes(m.symbol.toUpperCase())
                               ? `Remove ${m.symbol} from Watching`
                               : `Add ${m.symbol} to Watching`
                           }
                           onClick={(e) => toggleWatching(m.symbol, e)}
                           className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold transition ${
-                            watchlist.includes(m.symbol)
+                            watchlist.includes(m.symbol.toUpperCase())
                               ? "border-mdc-blue bg-mdc-blue/20 text-mdc-blue"
                               : "border-white/20 text-white/50 hover:border-mdc-blue hover:text-mdc-blue"
                           }`}
                         >
-                          {watchlist.includes(m.symbol) ? "✓" : "+"}
+                          {watchlist.includes(m.symbol.toUpperCase()) ? "✓" : "+"}
                         </button>
                       </td>
                         </tr>

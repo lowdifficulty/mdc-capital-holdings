@@ -31,9 +31,9 @@ export default function WatchlistPage() {
         router.replace("/login");
         return;
       }
-      const wlRes = await fetch("/api/watchlist");
+      const wlRes = await fetch("/api/watchlist", { credentials: "same-origin" });
       const wlData = await wlRes.json();
-      setWatchlist(wlData.watchlist ?? []);
+      setWatchlist((wlData.watchlist ?? []).map((s: string) => s.toUpperCase()));
       setHistory(wlData.history ?? []);
 
       const recs: Recommendation[] = [];
@@ -56,6 +56,7 @@ export default function WatchlistPage() {
     if (!draft.trim()) return;
     await fetch("/api/watchlist", {
       method: "POST",
+      credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ symbol: draft }),
     });
@@ -64,7 +65,10 @@ export default function WatchlistPage() {
   }
 
   async function removeSymbol(symbol: string) {
-    await fetch(`/api/watchlist?symbol=${symbol}`, { method: "DELETE" });
+    await fetch(`/api/watchlist?symbol=${encodeURIComponent(symbol)}`, {
+      method: "DELETE",
+      credentials: "same-origin",
+    });
     void load();
   }
 

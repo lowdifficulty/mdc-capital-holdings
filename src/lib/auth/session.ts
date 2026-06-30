@@ -10,6 +10,7 @@ export interface SessionUser {
 
 export interface SessionData {
   user?: SessionUser;
+  watchlist?: string[];
 }
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@mdccapitalholdings.com";

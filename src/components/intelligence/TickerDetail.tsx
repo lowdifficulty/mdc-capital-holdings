@@ -32,7 +32,7 @@ export default function TickerDetail({ symbol }: { symbol: string }) {
       }
       const [recRes, wlRes] = await Promise.all([
         fetch(`/api/recommendations/${symbol}`),
-        fetch("/api/watchlist"),
+        fetch("/api/watchlist", { credentials: "same-origin" }),
       ]);
       if (recRes.ok) setRec(await recRes.json());
       if (wlRes.ok) {
@@ -50,11 +50,15 @@ export default function TickerDetail({ symbol }: { symbol: string }) {
 
   async function toggleWatchlist() {
     if (onWatchlist) {
-      await fetch(`/api/watchlist?symbol=${symbol}`, { method: "DELETE" });
+      await fetch(`/api/watchlist?symbol=${encodeURIComponent(symbol)}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+      });
       setOnWatchlist(false);
     } else {
       await fetch("/api/watchlist", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ symbol }),
       });
