@@ -1,12 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix";
-import RecommendationsTab, {
-  type RecommendationsPayload,
-} from "@/components/dashboard/RecommendationsTab";
+import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
 import {
   formatSentimentScore,
   scoreColor,
@@ -22,7 +20,7 @@ import type {
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
 
-type DashboardView = "recommendations" | SentimentPeriod | "movers";
+type DashboardView = SentimentPeriod | "movers";
 
 function periodTitle(period: SentimentPeriod): string {
   if (period === "24h") return "24 hr sentiment";
@@ -43,7 +41,6 @@ function priorPeriodLabel(period: SentimentPeriod): string {
 }
 
 function loadingPeriodLabel(view: DashboardView): string {
-  if (view === "recommendations") return "Running recommendation engine…";
   if (view === "movers") return "Loading all tracked stocks…";
   if (view === "24h") return "Analyzing 24 hr sentiment…";
   if (view === "week") return "Analyzing 7-day sentiment…";
@@ -109,11 +106,23 @@ function sortMovers(
   return dir === "desc" ? sorted.reverse() : sorted;
 }
 
-function SentimentBadge({ score, large }: { score: number; large?: boolean }) {
+function SentimentBadge({
+  score,
+  large,
+  compact,
+}: {
+  score: number;
+  large?: boolean;
+  compact?: boolean;
+}) {
   return (
     <span
-      className={`inline-flex rounded-md border font-semibold tabular-nums ${scoreColor(score)} ${
-        large ? "px-4 py-2 text-2xl" : "px-2 py-0.5 text-xs"
+      className={`inline-flex rounded border font-semibold tabular-nums ${scoreColor(score)} ${
+        large
+          ? "px-4 py-2 text-2xl"
+          : compact
+            ? "px-1 py-0 text-[10px] leading-5"
+            : "px-2 py-0.5 text-xs"
       }`}
     >
       {formatSentimentScore(score)}
@@ -130,10 +139,10 @@ function formatTime(iso: string): string {
   });
 }
 
-function directionLabel(m: SentimentMover): string {
-  if (m.direction === "heating_up") return "Heating up";
-  if (m.direction === "cooling_down") return "Cooling down";
-  return "Stable";
+function directionShort(m: SentimentMover): string {
+  if (m.direction === "heating_up") return "↑";
+  if (m.direction === "cooling_down") return "↓";
+  return "—";
 }
 
 function formatPrice(price?: number): string {
@@ -156,25 +165,36 @@ function pctColor(pct?: number): string {
 
 export default function SentimentDashboard() {
   const router = useRouter();
-  const [view, setView] = useState<DashboardView>("recommendations");
+  const [view, setView] = useState<DashboardView>("movers");
   const [symbol, setSymbol] = useState("AAPL");
   const [draft, setDraft] = useState("AAPL");
   const [report, setReport] = useState<SentimentReport | null>(null);
   const [movers, setMovers] = useState<MoversReport | null>(null);
-  const [recData, setRecData] = useState<RecommendationsPayload | null>(null);
   const [loading, setLoading] = useState(true);
-  const [recLoading, setRecLoading] = useState(true);
   const [error, setError] = useState("");
-  const [recError, setRecError] = useState("");
+  const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [moverSortKey, setMoverSortKey] = useState<MoverSortKey>("velocity");
   const [moverSortDir, setMoverSortDir] = useState<SortDir>("desc");
+  const [watchlist, setWatchlist] = useState<string[]>([]);
 
   const sortedMovers = useMemo(() => {
     if (!movers) return [];
     return sortMovers(movers.movers, moverSortKey, moverSortDir);
   }, [movers, moverSortKey, moverSortDir]);
+
+  const watchingMovers = useMemo(() => {
+    if (!movers) return [];
+    const set = new Set(watchlist);
+    return movers.movers.filter((m) => set.has(m.symbol));
+  }, [movers, watchlist]);
+
+  const watchingOnlySymbols = useMemo(() => {
+    if (!movers) return watchlist;
+    const inMovers = new Set(movers.movers.map((m) => m.symbol));
+    return watchlist.filter((s) => !inMovers.has(s));
+  }, [movers, watchlist]);
 
   function handleMoverSort(key: MoverSortKey) {
     if (moverSortKey === key) {
@@ -190,33 +210,50 @@ export default function SentimentDashboard() {
     return moverSortDir === "asc" ? "↑" : "↓";
   }
 
-  const loadRecommendations = useCallback(
-    async (silent = false) => {
-      if (!silent) setRecLoading(true);
-      setRecError("");
-      try {
-        const sessionRes = await fetch("/api/auth/session");
-        const session = await sessionRes.json();
-        if (!session.user) {
-          router.replace("/login");
-          return;
-        }
-        const res = await fetch("/api/recommendations");
-        if (res.status === 401) {
-          router.replace("/login");
-          return;
-        }
-        if (!res.ok) throw new Error("Failed to load recommendations");
-        setRecData((await res.json()) as RecommendationsPayload);
-        setLastRefresh(new Date());
-      } catch {
-        setRecError("Could not load recommendations. Try again.");
-      } finally {
-        if (!silent) setRecLoading(false);
-      }
-    },
-    [router]
-  );
+  const loadWatchlist = useCallback(async () => {
+    try {
+      const res = await fetch("/api/watchlist");
+      if (!res.ok) return;
+      const data = (await res.json()) as { watchlist?: string[] };
+      setWatchlist(data.watchlist ?? []);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  async function addToWatching(symbol: string) {
+    const sym = symbol.toUpperCase();
+    if (watchlist.includes(sym)) return;
+    const res = await fetch("/api/watchlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbol: sym }),
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { watchlist: string[] };
+      setWatchlist(data.watchlist);
+    }
+  }
+
+  async function removeFromWatching(symbol: string) {
+    const res = await fetch(`/api/watchlist?symbol=${encodeURIComponent(symbol)}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { watchlist: string[] };
+      setWatchlist(data.watchlist);
+    }
+  }
+
+  function toggleWatching(symbol: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (watchlist.includes(symbol.toUpperCase())) void removeFromWatching(symbol);
+    else void addToWatching(symbol);
+  }
+
+  function toggleMoverExpand(m: SentimentMover) {
+    setExpandedSymbol((prev) => (prev === m.symbol ? null : m.symbol));
+  }
 
   const loadSentimentData = useCallback(
     async (silent = false) => {
@@ -263,23 +300,19 @@ export default function SentimentDashboard() {
     [router, symbol, view]
   );
 
-  const loadData = useCallback(
-    async (silent = false) => {
-      if (view === "recommendations") await loadRecommendations(silent);
-      else await loadSentimentData(silent);
-    },
-    [view, loadRecommendations, loadSentimentData]
-  );
+  useEffect(() => {
+    void loadSentimentData();
+  }, [loadSentimentData]);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    void loadWatchlist();
+  }, [loadWatchlist]);
 
   useEffect(() => {
-    if (!autoRefresh || view === "recommendations") return;
+    if (!autoRefresh) return;
     const id = window.setInterval(() => void loadSentimentData(true), POLL_MS);
     return () => window.clearInterval(id);
-  }, [autoRefresh, view, loadSentimentData]);
+  }, [autoRefresh, loadSentimentData]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -309,7 +342,7 @@ export default function SentimentDashboard() {
             </Link>
             <div>
               <p className="text-sm font-semibold">Market Dashboard</p>
-              <p className="text-xs text-white/50">Recommendations · Movers · Sentiment</p>
+              <p className="text-xs text-white/50">Movers · 24 hr · Week · Month</p>
             </div>
           </div>
           <button
@@ -326,7 +359,6 @@ export default function SentimentDashboard() {
         <div className="flex flex-wrap gap-2 border-b border-white/10 pb-4">
           {(
             [
-              ["recommendations", "Recommendations"],
               ["movers", "Movers"],
               ["24h", "24 hr"],
               ["week", "Week"],
@@ -348,16 +380,7 @@ export default function SentimentDashboard() {
           ))}
         </div>
 
-        {view === "recommendations" && (
-          <RecommendationsTab
-            data={recData}
-            loading={recLoading}
-            error={recError}
-            onRefresh={() => void loadRecommendations()}
-          />
-        )}
-
-        {view !== "movers" && view !== "recommendations" && (
+        {view !== "movers" && (
           <>
             <form onSubmit={handleAnalyze} className="mt-6 flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
@@ -419,17 +442,15 @@ export default function SentimentDashboard() {
           </p>
         )}
 
-        {error && view !== "recommendations" && (
-          <p className="mt-4 text-sm text-red-300">{error}</p>
-        )}
+        {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
 
-        {loading && !report && !movers && view !== "recommendations" && (
+        {loading && !report && !movers && (
           <p className="mt-12 text-center text-white/50">
             {loadingPeriodLabel(view)}
           </p>
         )}
 
-        {report && view !== "movers" && view !== "recommendations" && (
+        {report && view !== "movers" && (
           <div className="mt-8 space-y-8">
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-1">
@@ -538,107 +559,239 @@ export default function SentimentDashboard() {
 
         {movers && view === "movers" && (
           <div className="mt-8 space-y-4">
+            {(watchlist.length > 0 || watchingMovers.length > 0) && (
+              <section className="rounded-2xl border border-mdc-blue/30 bg-mdc-blue/10 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <h2 className="text-sm font-semibold text-white">
+                    Watching
+                    <span className="ml-2 text-xs font-normal text-white/50">
+                      Stocks you&apos;re planning to buy
+                    </span>
+                  </h2>
+                  <span className="text-xs text-white/40 tabular-nums">{watchlist.length}</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {watchingMovers.map((m) => (
+                    <div
+                      key={m.symbol}
+                      className="inline-flex items-center gap-2 rounded-full border border-mdc-blue/40 bg-navy/60 pl-3 pr-1.5 py-1.5 text-sm"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDraft(m.symbol);
+                          setSymbol(m.symbol);
+                          setView("24h");
+                        }}
+                        className="font-semibold hover:text-mdc-blue"
+                      >
+                        {m.symbol}
+                      </button>
+                      <span className="text-xs tabular-nums text-white/50">{formatPrice(m.price)}</span>
+                      <span className={`text-xs tabular-nums ${pctColor(m.dailyChange)}`}>
+                        {formatPct(m.dailyChange)}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${m.symbol} from Watching`}
+                        onClick={(e) => toggleWatching(m.symbol, e)}
+                        className="ml-1 flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:bg-white/10 hover:text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  {watchingOnlySymbols.map((sym) => (
+                    <div
+                      key={sym}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-navy/60 pl-3 pr-1.5 py-1.5 text-sm"
+                    >
+                      <span className="font-semibold">{sym}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove ${sym} from Watching`}
+                        onClick={(e) => toggleWatching(sym, e)}
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:bg-white/10 hover:text-white"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-white/45">
                 {movers.totalAnalyzed} stocks analyzed · Updated{" "}
                 {lastRefresh ? formatTime(lastRefresh.toISOString()) : "—"}
               </p>
             </div>
-            <div className="overflow-auto max-h-[70vh] rounded-2xl border border-white/10">
-              <table className="w-full min-w-[1100px] text-sm">
-                <thead className="sticky top-0 z-10 bg-navy/95 text-left text-xs uppercase tracking-wide text-white/50 backdrop-blur">
+            <div className="overflow-y-auto overflow-x-hidden max-h-[70vh] rounded-2xl border border-white/10">
+              <table className="w-full table-fixed text-xs">
+                <colgroup>
+                  <col className="w-[3%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[7%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[6%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[7%]" />
+                  <col className="w-[5%]" />
+                  <col className="w-[5%]" />
+                  <col className="w-[5%]" />
+                </colgroup>
+                <thead className="sticky top-0 z-10 bg-navy/95 text-left text-[10px] uppercase tracking-wide text-white/50 backdrop-blur">
                   <tr>
                     {(
                       [
                         ["rank", "#"],
-                        ["symbol", "Ticker"],
-                        ["name", "Name"],
-                        ["price", "Price"],
-                        ["dailyChange", "Day %"],
-                        ["weeklyChange", "Week %"],
-                        ["monthlyChange", "Month %"],
-                        ["h24Score", "24 hr"],
-                        ["weekScore", "Week"],
-                        ["monthScore", "Month"],
-                        ["velocity", "Velocity"],
-                        ["mentions", "Mentions"],
-                        ["signal", "Signal"],
+                        ["symbol", "Sym"],
+                        ["price", "$"],
+                        ["dailyChange", "Day"],
+                        ["weeklyChange", "Wk"],
+                        ["monthlyChange", "Mo"],
+                        ["h24Score", "24h"],
+                        ["weekScore", "7d"],
+                        ["monthScore", "30d"],
+                        ["velocity", "Vel"],
+                        ["mentions", "Mnt"],
+                        ["signal", "Sig"],
                       ] as const
                     ).map(([key, label]) => (
-                      <th key={key} className="px-4 py-3">
+                      <th key={key} className="px-1.5 py-2">
                         <button
                           type="button"
                           onClick={() => handleMoverSort(key)}
-                          className={`inline-flex items-center gap-1.5 transition hover:text-white ${
+                          className={`inline-flex items-center gap-0.5 transition hover:text-white ${
                             moverSortKey === key ? "text-white" : ""
                           }`}
                         >
                           {label}
-                          <span className="text-[10px] opacity-60">{sortIndicator(key)}</span>
+                          <span className="opacity-50">{sortIndicator(key)}</span>
                         </button>
                       </th>
                     ))}
+                    <th className="sticky right-0 z-20 bg-navy/95 px-1 py-2 text-center backdrop-blur">
+                      +
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {sortedMovers.map((m, i) => (
-                    <tr
-                      key={m.symbol}
-                      className="hover:bg-white/5 cursor-pointer"
-                      onClick={() => {
-                        setDraft(m.symbol);
-                        setSymbol(m.symbol);
-                        setView("24h");
-                      }}
-                    >
-                      <td className="px-4 py-3 text-white/40 tabular-nums">
-                        {m.rank ?? i + 1}
+                  {sortedMovers.map((m, i) => {
+                    const isExpanded = expandedSymbol === m.symbol;
+                    return (
+                      <Fragment key={m.symbol}>
+                        <tr
+                          className={`hover:bg-white/5 cursor-pointer ${isExpanded ? "bg-white/5" : ""}`}
+                          onClick={() => toggleMoverExpand(m)}
+                        >
+                          <td className="px-1.5 py-2 text-white/40 tabular-nums">
+                            {m.rank ?? i + 1}
+                          </td>
+                          <td
+                            className="px-1.5 py-2 font-semibold truncate"
+                            title={m.name}
+                          >
+                            <span className="inline-flex items-center gap-1 min-w-0">
+                              <span className="shrink-0 text-white/35 text-[10px]">
+                                {isExpanded ? "▼" : "▶"}
+                              </span>
+                              <span className="truncate">{m.symbol}</span>
+                            </span>
+                          </td>
+                      <td className="px-1.5 py-2 tabular-nums font-medium truncate">
+                        {formatPrice(m.price)}
                       </td>
-                      <td className="px-4 py-3 font-semibold">{m.symbol}</td>
-                      <td className="px-4 py-3 text-white/60 max-w-[10rem] truncate">
-                        {m.name ?? "—"}
-                      </td>
-                      <td className="px-4 py-3 tabular-nums font-medium">{formatPrice(m.price)}</td>
-                      <td className={`px-4 py-3 tabular-nums ${pctColor(m.dailyChange)}`}>
+                      <td className={`px-1.5 py-2 tabular-nums truncate ${pctColor(m.dailyChange)}`}>
                         {formatPct(m.dailyChange)}
                       </td>
-                      <td className={`px-4 py-3 tabular-nums ${pctColor(m.weeklyChange)}`}>
+                      <td className={`px-1.5 py-2 tabular-nums truncate ${pctColor(m.weeklyChange)}`}>
                         {formatPct(m.weeklyChange)}
                       </td>
-                      <td className={`px-4 py-3 tabular-nums ${pctColor(m.monthlyChange)}`}>
+                      <td className={`px-1.5 py-2 tabular-nums truncate ${pctColor(m.monthlyChange)}`}>
                         {formatPct(m.monthlyChange)}
                       </td>
-                      <td className="px-4 py-3">
-                        <SentimentBadge score={m.h24Score} />
+                      <td className="px-1.5 py-2">
+                        <SentimentBadge score={m.h24Score} compact />
                       </td>
-                      <td className="px-4 py-3">
-                        <SentimentBadge score={m.weekScore} />
+                      <td className="px-1.5 py-2">
+                        <SentimentBadge score={m.weekScore} compact />
                       </td>
-                      <td className="px-4 py-3">
-                        <SentimentBadge score={m.monthScore} />
+                      <td className="px-1.5 py-2">
+                        <SentimentBadge score={m.monthScore} compact />
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`font-semibold tabular-nums ${scoreTextColor(m.velocity)}`}>
+                      <td className="px-1.5 py-2">
+                        <span className={`font-semibold tabular-nums text-[10px] ${scoreTextColor(m.velocity)}`}>
                           {formatSentimentScore(m.velocity)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-white/60">
+                      <td className="px-1.5 py-2 tabular-nums text-white/55">
                         {m.weekMentions}
-                        <span className="text-white/35"> (social)</span>
                       </td>
-                      <td className="px-4 py-3 text-white/70">{directionLabel(m)}</td>
-                    </tr>
-                  ))}
+                      <td
+                        className="px-1.5 py-2 text-center text-white/70"
+                        title={
+                          m.direction === "heating_up"
+                            ? "Heating up"
+                            : m.direction === "cooling_down"
+                              ? "Cooling down"
+                              : "Stable"
+                        }
+                      >
+                        {directionShort(m)}
+                      </td>
+                      <td className="sticky right-0 z-10 bg-navy/90 px-1 py-2 text-center backdrop-blur">
+                        <button
+                          type="button"
+                          aria-label={
+                            watchlist.includes(m.symbol)
+                              ? `Remove ${m.symbol} from Watching`
+                              : `Add ${m.symbol} to Watching`
+                          }
+                          onClick={(e) => toggleWatching(m.symbol, e)}
+                          className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold transition ${
+                            watchlist.includes(m.symbol)
+                              ? "border-mdc-blue bg-mdc-blue/20 text-mdc-blue"
+                              : "border-white/20 text-white/50 hover:border-mdc-blue hover:text-mdc-blue"
+                          }`}
+                        >
+                          {watchlist.includes(m.symbol) ? "✓" : "+"}
+                        </button>
+                      </td>
+                        </tr>
+                        {isExpanded && (
+                          <tr key={`${m.symbol}-detail`}>
+                            <td colSpan={13} className="p-0 max-w-0 w-full">
+                              <MoverExpandPanel
+                                mover={m}
+                                onOpenSentiment={() => {
+                                  setDraft(m.symbol);
+                                  setSymbol(m.symbol);
+                                  setView("24h");
+                                  setExpandedSymbol(null);
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
             <p className="text-xs text-white/40">
-              Click a column header to sort. Click a row to drill into that ticker&apos;s 24h view.
+              Click a column header to sort. Click a row to expand the live price chart.
+              Use <span className="text-white/60">+</span> to add stocks to Watching.
             </p>
           </div>
         )}
 
-        {warnings.length > 0 && view !== "recommendations" && (
+        {warnings.length > 0 && (
           <div className="mt-8 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 space-y-1">
             {warnings.map((w) => (
               <p key={w}>{w}</p>

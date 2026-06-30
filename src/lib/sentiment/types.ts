@@ -51,6 +51,14 @@ export interface PriceSnapshot {
   dailyChange: number;
   weeklyChange: number;
   monthlyChange: number;
+  tvSymbol?: string;
+}
+
+export interface PriceHistory extends PriceSnapshot {
+  change6mo: number;
+  change1y: number;
+  change5y: number;
+  companyName?: string;
 }
 
 export interface SourceMatrixRow {
@@ -100,6 +108,7 @@ export interface SentimentMover {
   dailyChange?: number;
   weeklyChange?: number;
   monthlyChange?: number;
+  tvSymbol?: string;
 }
 
 export interface MoversReport {

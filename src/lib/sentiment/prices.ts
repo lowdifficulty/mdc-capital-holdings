@@ -1,4 +1,5 @@
-import type { PriceSnapshot } from "./types";
+import type { PriceHistory, PriceSnapshot } from "./types";
+import { toTradingViewSymbol } from "./tradingViewSymbol";
 
 const UA = "MDC-Capital-Sentiment/1.0";
 
@@ -6,6 +7,9 @@ interface YahooChartMeta {
   regularMarketPrice?: number;
   chartPreviousClose?: number;
   previousClose?: number;
+  longName?: string;
+  shortName?: string;
+  exchangeName?: string;
 }
 
 interface YahooChartResult {
@@ -44,44 +48,75 @@ function closeOnOrBefore(
   return best;
 }
 
-export async function fetchPriceSnapshot(symbol: string): Promise<PriceSnapshot | null> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1mo&interval=1d`;
+function oldestClose(closes: (number | null)[]): number | null {
+  for (let i = 0; i < closes.length; i++) {
+    if (closes[i] != null) return closes[i]!;
+  }
+  return null;
+}
+
+async function fetchYahooChart(symbol: string, range: string): Promise<YahooChartResult | null> {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=1d`;
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": UA },
       next: { revalidate: 0 },
     });
     if (!res.ok) return null;
-
     const data = (await res.json()) as YahooChartResponse;
-    const result = data.chart?.result?.[0];
-    if (!result) return null;
-
-    const meta = result.meta;
-    const timestamps = result.timestamp ?? [];
-    const closes = result.indicators?.quote?.[0]?.close ?? [];
-
-    const price = meta?.regularMarketPrice ?? closes[closes.length - 1] ?? null;
-    if (price == null) return null;
-
-    const prevClose =
-      meta?.chartPreviousClose ??
-      meta?.previousClose ??
-      closes[closes.length - 2] ??
-      price;
-
-    const weekClose = closeOnOrBefore(timestamps, closes, 7) ?? prevClose;
-    const monthClose = closeOnOrBefore(timestamps, closes, 30) ?? weekClose;
-
-    return {
-      price,
-      dailyChange: pctChange(price, prevClose),
-      weeklyChange: pctChange(price, weekClose),
-      monthlyChange: pctChange(price, monthClose),
-    };
+    return data.chart?.result?.[0] ?? null;
   } catch {
     return null;
   }
+}
+
+function buildPriceHistory(result: YahooChartResult, symbol: string): PriceHistory | null {
+  const meta = result.meta;
+  const timestamps = result.timestamp ?? [];
+  const closes = result.indicators?.quote?.[0]?.close ?? [];
+
+  const price = meta?.regularMarketPrice ?? closes[closes.length - 1] ?? null;
+  if (price == null) return null;
+
+  const prevClose =
+    meta?.chartPreviousClose ??
+    meta?.previousClose ??
+    closes[closes.length - 2] ??
+    price;
+
+  const fallback = oldestClose(closes) ?? prevClose;
+  const weekClose = closeOnOrBefore(timestamps, closes, 7) ?? fallback;
+  const monthClose = closeOnOrBefore(timestamps, closes, 30) ?? fallback;
+  const sixMoClose = closeOnOrBefore(timestamps, closes, 182) ?? fallback;
+  const yearClose = closeOnOrBefore(timestamps, closes, 365) ?? fallback;
+  const fiveYearClose = closeOnOrBefore(timestamps, closes, 1825) ?? fallback;
+
+  return {
+    price,
+    dailyChange: pctChange(price, prevClose),
+    weeklyChange: pctChange(price, weekClose),
+    monthlyChange: pctChange(price, monthClose),
+    change6mo: pctChange(price, sixMoClose),
+    change1y: pctChange(price, yearClose),
+    change5y: pctChange(price, fiveYearClose),
+    companyName: meta?.longName ?? meta?.shortName,
+    tvSymbol: toTradingViewSymbol(symbol, meta?.exchangeName),
+  };
+}
+
+export async function fetchPriceSnapshot(symbol: string): Promise<PriceSnapshot | null> {
+  const result = await fetchYahooChart(symbol, "1y");
+  if (!result) return null;
+  const history = buildPriceHistory(result, symbol);
+  if (!history) return null;
+  const { price, dailyChange, weeklyChange, monthlyChange, tvSymbol } = history;
+  return { price, dailyChange, weeklyChange, monthlyChange, tvSymbol };
+}
+
+export async function fetchPriceHistory(symbol: string): Promise<PriceHistory | null> {
+  const result = await fetchYahooChart(symbol, "5y");
+  if (!result) return null;
+  return buildPriceHistory(result, symbol);
 }
 
 export async function fetchBulkPriceSnapshots(

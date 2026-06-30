@@ -306,6 +306,7 @@ export async function analyzeMovers(): Promise<MoversReport> {
       dailyChange: p.dailyChange,
       weeklyChange: p.weeklyChange,
       monthlyChange: p.monthlyChange,
+      tvSymbol: p.tvSymbol,
     };
   });
 
@@ -313,7 +314,7 @@ export async function analyzeMovers(): Promise<MoversReport> {
     warnings.push("No mover data found. ApeWisdom / SwaggyStocks may be unreachable.");
   } else {
     warnings.push(
-      `Scanned ${moversWithPrices.length} tickers across ApeWisdom (${apeRows.length}) + SwaggyStocks (${swaggyRows.length}). Prices from Yahoo Finance. Click a row for full multi-source week analysis.`
+      `Scanned ${moversWithPrices.length} tickers across ApeWisdom (${apeRows.length}) + SwaggyStocks (${swaggyRows.length}). Prices from Yahoo Finance. Click a row to expand the live chart.`
     );
   }
 
