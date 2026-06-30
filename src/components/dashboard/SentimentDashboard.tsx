@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix";
+import RecommendationsTab, {
+  type RecommendationsPayload,
+} from "@/components/dashboard/RecommendationsTab";
 import {
   formatSentimentScore,
   scoreColor,
@@ -19,7 +22,7 @@ import type {
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
 
-type DashboardView = SentimentPeriod | "movers";
+type DashboardView = "recommendations" | SentimentPeriod | "movers";
 
 function periodTitle(period: SentimentPeriod): string {
   if (period === "24h") return "24 hr sentiment";
@@ -40,6 +43,7 @@ function priorPeriodLabel(period: SentimentPeriod): string {
 }
 
 function loadingPeriodLabel(view: DashboardView): string {
+  if (view === "recommendations") return "Running recommendation engine…";
   if (view === "movers") return "Loading all tracked stocks…";
   if (view === "24h") return "Analyzing 24 hr sentiment…";
   if (view === "week") return "Analyzing 7-day sentiment…";
@@ -152,13 +156,16 @@ function pctColor(pct?: number): string {
 
 export default function SentimentDashboard() {
   const router = useRouter();
-  const [view, setView] = useState<DashboardView>("movers");
+  const [view, setView] = useState<DashboardView>("recommendations");
   const [symbol, setSymbol] = useState("AAPL");
   const [draft, setDraft] = useState("AAPL");
   const [report, setReport] = useState<SentimentReport | null>(null);
   const [movers, setMovers] = useState<MoversReport | null>(null);
+  const [recData, setRecData] = useState<RecommendationsPayload | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recLoading, setRecLoading] = useState(true);
   const [error, setError] = useState("");
+  const [recError, setRecError] = useState("");
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [moverSortKey, setMoverSortKey] = useState<MoverSortKey>("velocity");
@@ -183,7 +190,35 @@ export default function SentimentDashboard() {
     return moverSortDir === "asc" ? "↑" : "↓";
   }
 
-  const loadData = useCallback(
+  const loadRecommendations = useCallback(
+    async (silent = false) => {
+      if (!silent) setRecLoading(true);
+      setRecError("");
+      try {
+        const sessionRes = await fetch("/api/auth/session");
+        const session = await sessionRes.json();
+        if (!session.user) {
+          router.replace("/login");
+          return;
+        }
+        const res = await fetch("/api/recommendations");
+        if (res.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        if (!res.ok) throw new Error("Failed to load recommendations");
+        setRecData((await res.json()) as RecommendationsPayload);
+        setLastRefresh(new Date());
+      } catch {
+        setRecError("Could not load recommendations. Try again.");
+      } finally {
+        if (!silent) setRecLoading(false);
+      }
+    },
+    [router]
+  );
+
+  const loadSentimentData = useCallback(
     async (silent = false) => {
       if (!silent) setLoading(true);
       setError("");
@@ -228,15 +263,23 @@ export default function SentimentDashboard() {
     [router, symbol, view]
   );
 
+  const loadData = useCallback(
+    async (silent = false) => {
+      if (view === "recommendations") await loadRecommendations(silent);
+      else await loadSentimentData(silent);
+    },
+    [view, loadRecommendations, loadSentimentData]
+  );
+
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
   useEffect(() => {
-    if (!autoRefresh) return;
-    const id = window.setInterval(() => void loadData(true), POLL_MS);
+    if (!autoRefresh || view === "recommendations") return;
+    const id = window.setInterval(() => void loadSentimentData(true), POLL_MS);
     return () => window.clearInterval(id);
-  }, [autoRefresh, loadData]);
+  }, [autoRefresh, view, loadSentimentData]);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -265,8 +308,8 @@ export default function SentimentDashboard() {
               MDC
             </Link>
             <div>
-              <p className="text-sm font-semibold">Market Sentiment</p>
-              <p className="text-xs text-white/50">Movers · 24 hr · Week · Month</p>
+              <p className="text-sm font-semibold">Market Dashboard</p>
+              <p className="text-xs text-white/50">Recommendations · Movers · Sentiment</p>
             </div>
           </div>
           <button
@@ -283,6 +326,7 @@ export default function SentimentDashboard() {
         <div className="flex flex-wrap gap-2 border-b border-white/10 pb-4">
           {(
             [
+              ["recommendations", "Recommendations"],
               ["movers", "Movers"],
               ["24h", "24 hr"],
               ["week", "Week"],
@@ -304,7 +348,16 @@ export default function SentimentDashboard() {
           ))}
         </div>
 
-        {view !== "movers" && (
+        {view === "recommendations" && (
+          <RecommendationsTab
+            data={recData}
+            loading={recLoading}
+            error={recError}
+            onRefresh={() => void loadRecommendations()}
+          />
+        )}
+
+        {view !== "movers" && view !== "recommendations" && (
           <>
             <form onSubmit={handleAnalyze} className="mt-6 flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
@@ -366,15 +419,17 @@ export default function SentimentDashboard() {
           </p>
         )}
 
-        {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
+        {error && view !== "recommendations" && (
+          <p className="mt-4 text-sm text-red-300">{error}</p>
+        )}
 
-        {loading && !report && !movers && (
+        {loading && !report && !movers && view !== "recommendations" && (
           <p className="mt-12 text-center text-white/50">
             {loadingPeriodLabel(view)}
           </p>
         )}
 
-        {report && view !== "movers" && (
+        {report && view !== "movers" && view !== "recommendations" && (
           <div className="mt-8 space-y-8">
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-1">
@@ -583,7 +638,7 @@ export default function SentimentDashboard() {
           </div>
         )}
 
-        {warnings.length > 0 && (
+        {warnings.length > 0 && view !== "recommendations" && (
           <div className="mt-8 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100 space-y-1">
             {warnings.map((w) => (
               <p key={w}>{w}</p>

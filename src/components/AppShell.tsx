@@ -9,7 +9,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const minimal =
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
-    pathname.startsWith("/dashboard");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/intelligence");
 
   if (minimal) {
     return <>{children}</>;
