@@ -6,7 +6,7 @@ import Link from "next/link";
 
 export default function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,7 @@ export default function LoginForm() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: username, password }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -56,17 +56,16 @@ export default function LoginForm() {
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-4">
               <div>
-                <label htmlFor="email" className="block text-xs font-medium text-white/70 mb-1.5">
-                  Email
+                <label htmlFor="username" className="block text-xs font-medium text-white/70 mb-1.5">
+                  Username
                 </label>
                 <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="w-full rounded-xl border border-white/15 bg-navy/80 px-4 py-3 text-sm text-white placeholder:text-white/30 outline-none focus:border-mdc-blue focus:ring-2 focus:ring-mdc-blue/30"
-                  placeholder="admin@mdccapitalholdings.com"
                   required
                 />
               </div>

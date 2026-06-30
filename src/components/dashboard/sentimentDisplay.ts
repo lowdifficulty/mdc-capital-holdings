@@ -1,5 +1,33 @@
 /** Display helpers — numeric sentiment only, no bullish/bearish labels. */
 
+const SCORE_GREEN_MIN = 0.12;
+
+export function isScoreGreen(score: number): boolean {
+  return score >= SCORE_GREEN_MIN;
+}
+
+export function isPctGreen(pct?: number): boolean {
+  return pct != null && pct > 0;
+}
+
+export function isWinnerMover(m: {
+  dailyChange?: number;
+  weeklyChange?: number;
+  monthlyChange?: number;
+  h24Score: number;
+  weekScore: number;
+  monthScore: number;
+}): boolean {
+  return (
+    isPctGreen(m.dailyChange) &&
+    isPctGreen(m.weeklyChange) &&
+    isPctGreen(m.monthlyChange) &&
+    isScoreGreen(m.h24Score) &&
+    isScoreGreen(m.weekScore) &&
+    isScoreGreen(m.monthScore)
+  );
+}
+
 export function formatSentimentScore(score: number): string {
   const value = score * 100;
   const sign = value > 0 ? "+" : "";
@@ -7,13 +35,13 @@ export function formatSentimentScore(score: number): string {
 }
 
 export function scoreColor(score: number): string {
-  if (score >= 0.12) return "text-emerald-400 bg-emerald-400/15 border-emerald-400/30";
+  if (isScoreGreen(score)) return "text-emerald-400 bg-emerald-400/15 border-emerald-400/30";
   if (score <= -0.12) return "text-red-400 bg-red-400/15 border-red-400/30";
   return "text-amber-300 bg-amber-400/15 border-amber-400/30";
 }
 
 export function scoreTextColor(score: number): string {
-  if (score >= 0.12) return "text-emerald-400";
+  if (isScoreGreen(score)) return "text-emerald-400";
   if (score <= -0.12) return "text-red-400";
   return "text-amber-300";
 }

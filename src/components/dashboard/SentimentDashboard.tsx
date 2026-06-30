@@ -7,6 +7,7 @@ import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix"
 import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
 import {
   formatSentimentScore,
+  isWinnerMover,
   scoreColor,
   scoreTextColor,
 } from "@/components/dashboard/sentimentDisplay";
@@ -178,11 +179,15 @@ export default function SentimentDashboard() {
   const [moverSortKey, setMoverSortKey] = useState<MoverSortKey>("velocity");
   const [moverSortDir, setMoverSortDir] = useState<SortDir>("desc");
   const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [winnersOnly, setWinnersOnly] = useState(false);
 
   const sortedMovers = useMemo(() => {
     if (!movers) return [];
-    return sortMovers(movers.movers, moverSortKey, moverSortDir);
-  }, [movers, moverSortKey, moverSortDir]);
+    const pool = winnersOnly
+      ? movers.movers.filter(isWinnerMover)
+      : movers.movers;
+    return sortMovers(pool, moverSortKey, moverSortDir);
+  }, [movers, moverSortKey, moverSortDir, winnersOnly]);
 
   const watchingMovers = useMemo(() => {
     if (!movers) return [];
@@ -314,6 +319,10 @@ export default function SentimentDashboard() {
     },
     [router, symbol, view]
   );
+
+  useEffect(() => {
+    if (view !== "movers") setWinnersOnly(false);
+  }, [view]);
 
   useEffect(() => {
     void loadSentimentData();
@@ -451,10 +460,24 @@ export default function SentimentDashboard() {
         )}
 
         {view === "movers" && (
-          <p className="mt-6 text-sm text-white/55">
-            All tracked tickers from ApeWisdom (Reddit) and SwaggyStocks (WSB), ranked by
-            sentiment velocity and mention momentum. Click a row for full multi-source analysis.
-          </p>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-white/55 max-w-2xl">
+              All tracked tickers from ApeWisdom (Reddit) and SwaggyStocks (WSB), ranked by
+              sentiment velocity and mention momentum. Click a row for full multi-source analysis.
+            </p>
+            <button
+              type="button"
+              title="Show stocks with Day, Wk, Mo, 24h, 7d, and 30d all green"
+              onClick={() => setWinnersOnly((on) => !on)}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                winnersOnly
+                  ? "bg-emerald-500/20 border border-emerald-400/40 text-emerald-300"
+                  : "border border-white/15 text-white/70 hover:border-emerald-400/40 hover:text-emerald-300"
+              }`}
+            >
+              Winners
+            </button>
+          </div>
         )}
 
         {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
@@ -638,10 +661,24 @@ export default function SentimentDashboard() {
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs text-white/45">
-                {movers.totalAnalyzed} stocks analyzed · Updated{" "}
+                {winnersOnly ? (
+                  <>
+                    {sortedMovers.length} winner{sortedMovers.length === 1 ? "" : "s"} of{" "}
+                    {movers.totalAnalyzed} stocks
+                  </>
+                ) : (
+                  <>{movers.totalAnalyzed} stocks analyzed</>
+                )}
+                {" · Updated "}
                 {lastRefresh ? formatTime(lastRefresh.toISOString()) : "—"}
               </p>
             </div>
+            {winnersOnly && sortedMovers.length === 0 && (
+              <p className="rounded-xl border border-white/10 bg-white/5 px-4 py-6 text-center text-sm text-white/50">
+                No stocks have all six analysis columns green right now (Day, Wk, Mo, 24h, 7d, 30d).
+              </p>
+            )}
+            {sortedMovers.length > 0 && (
             <div className="overflow-y-auto overflow-x-hidden max-h-[70vh] rounded-2xl border border-white/10">
               <table className="w-full table-fixed text-xs">
                 <colgroup>
@@ -799,6 +836,7 @@ export default function SentimentDashboard() {
                 </tbody>
               </table>
             </div>
+            )}
             <p className="text-xs text-white/40">
               Click a column header to sort. Click a row to expand the live price chart.
               Use <span className="text-white/60">+</span> to add stocks to Watching.

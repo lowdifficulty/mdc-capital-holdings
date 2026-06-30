@@ -1,7 +1,6 @@
 import "server-only";
 import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
-import bcrypt from "bcryptjs";
 
 export interface SessionUser {
   email: string;
@@ -13,11 +12,7 @@ export interface SessionData {
   watchlist?: string[];
 }
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@mdccapitalholdings.com";
-
-const ADMIN_PASSWORD_HASH =
-  process.env.ADMIN_PASSWORD_HASH ??
-  "$2b$10$u0DN49dIL.xM4OfVlNIpduTF9jTPmb8IzR2uX.6.cRk1BuOkOcuJ.";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "1";
 
 function getSessionOptions() {
   const password =
@@ -40,9 +35,8 @@ export async function getSession() {
 }
 
 async function verifyPassword(password: string): Promise<boolean> {
-  const plain = process.env.ADMIN_PASSWORD;
-  if (plain) return password === plain;
-  return bcrypt.compare(password, ADMIN_PASSWORD_HASH);
+  const plain = process.env.ADMIN_PASSWORD ?? "1";
+  return password === plain;
 }
 
 export async function loginAdmin(
