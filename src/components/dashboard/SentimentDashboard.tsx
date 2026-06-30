@@ -23,6 +23,7 @@ import type {
   SentimentReport,
 } from "@/lib/sentiment/types";
 import { readMoversCache, writeMoversCache, clearMoversCache } from "@/lib/dashboard/moversCache";
+import { useQuiverSync } from "@/hooks/useQuiverSync";
 
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
@@ -231,6 +232,8 @@ export default function SentimentDashboard() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [positionSymbols, setPositionSymbols] = useState<string[]>([]);
   const [moverFilter, setMoverFilter] = useState<MoverFilter>("all");
+  const { syncing: quiverSyncing, startSync: startQuiverSync, refreshToken: quiverRefreshToken, syncError: quiverSyncError } =
+    useQuiverSync();
 
   useEffect(() => {
     moversRef.current = movers;
@@ -550,9 +553,19 @@ export default function SentimentDashboard() {
               }`}
             >
               {label}
+              {key === "quiver" && quiverSyncing && (
+                <span className="ml-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              )}
             </button>
           ))}
         </div>
+
+        {quiverSyncing && view !== "quiver" && (
+          <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-200">
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+            Quiver data sync in progress — you can keep browsing other tabs.
+          </div>
+        )}
 
         {view !== "movers" && view !== "positions" && view !== "quiver" && (
           <>
@@ -621,7 +634,14 @@ export default function SentimentDashboard() {
           />
         )}
 
-        {view === "quiver" && <QuiverAnalysisPanel />}
+        <div className={view === "quiver" ? undefined : "hidden"} aria-hidden={view !== "quiver"}>
+          <QuiverAnalysisPanel
+            syncing={quiverSyncing}
+            syncError={quiverSyncError}
+            refreshToken={quiverRefreshToken}
+            onStartSync={startQuiverSync}
+          />
+        </div>
 
         {view === "movers" && (
           <div className="mt-6 flex flex-wrap items-start justify-between gap-3">

@@ -3,6 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CongressCluster, TickerDailyScore } from "@/lib/quiver/types";
 
+interface QuiverAnalysisPanelProps {
+  syncing?: boolean;
+  syncError?: string | null;
+  refreshToken?: number;
+  onStartSync?: () => Promise<void>;
+}
+
 function formatMoney(n: number): string {
   return n.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
@@ -22,21 +29,112 @@ function scoreColor(n: number): string {
   return "text-white/70";
 }
 
-type SortKey = "sentiment" | "risk" | "value_to_risk" | "congress" | "insider";
+type ApiSortKey = "sentiment" | "risk" | "value_to_risk" | "congress" | "insider";
+
+type TableSortKey =
+  | "ticker"
+  | "recommendation"
+  | "sentiment"
+  | "risk"
+  | "value_to_risk"
+  | "confidence"
+  | "congress"
+  | "insider"
+  | "hedge_fund";
+
+type SortDir = "asc" | "desc";
+
+const RECOMMENDATION_RANK: Record<string, number> = {
+  "Strong Bullish": 6,
+  Bullish: 5,
+  "Slightly Bullish": 4,
+  Neutral: 3,
+  Caution: 2,
+  Bearish: 1,
+  "Strong Bearish": 0,
+};
+
+function compareTickers(a: TickerDailyScore, b: TickerDailyScore, key: TableSortKey): number {
+  switch (key) {
+    case "ticker":
+      return a.ticker.localeCompare(b.ticker);
+    case "recommendation":
+      return (RECOMMENDATION_RANK[a.recommendation] ?? 0) - (RECOMMENDATION_RANK[b.recommendation] ?? 0);
+    case "sentiment":
+      return a.total_sentiment_score - b.total_sentiment_score;
+    case "risk":
+      return a.risk_score - b.risk_score;
+    case "value_to_risk":
+      return a.value_to_risk_score - b.value_to_risk_score;
+    case "confidence":
+      return a.confidence_score - b.confidence_score;
+    case "congress":
+      return a.congress_score - b.congress_score;
+    case "insider":
+      return a.insider_score - b.insider_score;
+    case "hedge_fund":
+      return a.hedge_fund_score - b.hedge_fund_score;
+  }
+}
+
+function sortTickers(items: TickerDailyScore[], key: TableSortKey, dir: SortDir): TickerDailyScore[] {
+  const sorted = [...items].sort((a, b) => compareTickers(a, b, key));
+  return dir === "desc" ? sorted.reverse() : sorted;
+}
+
+function SortableHeader({
+  label,
+  sortKey,
+  activeKey,
+  dir,
+  align = "left",
+  onSort,
+}: {
+  label: string;
+  sortKey: TableSortKey;
+  activeKey: TableSortKey;
+  dir: SortDir;
+  align?: "left" | "right";
+  onSort: (key: TableSortKey) => void;
+}) {
+  const alignClass = align === "right" ? "justify-end" : "justify-start";
+  const indicator = activeKey !== sortKey ? "↕" : dir === "asc" ? "↑" : "↓";
+
+  return (
+    <th className={`px-3 py-2 ${align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`inline-flex w-full items-center gap-0.5 transition hover:text-white ${alignClass} ${
+          activeKey === sortKey ? "text-white" : ""
+        }`}
+      >
+        {label}
+        <span className="opacity-50">{indicator}</span>
+      </button>
+    </th>
+  );
+}
 
 interface RunStatus {
   lastRun?: { status: string; finishedAt?: string; errors: string[] };
   store?: { eventCount: number; tickerCount: number; lastSyncAt?: string };
 }
 
-export default function QuiverAnalysisPanel() {
+export default function QuiverAnalysisPanel({
+  syncing = false,
+  syncError = null,
+  refreshToken = 0,
+  onStartSync,
+}: QuiverAnalysisPanelProps) {
   const [tickers, setTickers] = useState<TickerDailyScore[]>([]);
   const [clusters, setClusters] = useState<CongressCluster[]>([]);
   const [status, setStatus] = useState<RunStatus | null>(null);
   const [selected, setSelected] = useState<TickerDailyScore | null>(null);
-  const [sort, setSort] = useState<SortKey>("value_to_risk");
+  const [sort, setSort] = useState<ApiSortKey>("value_to_risk");
+  const [tableSortKey, setTableSortKey] = useState<TableSortKey>("value_to_risk");
+  const [tableSortDir, setTableSortDir] = useState<SortDir>("desc");
   const [loading, setLoading] = useState(true);
-  const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -64,7 +162,11 @@ export default function QuiverAnalysisPanel() {
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, refreshToken]);
+
+  useEffect(() => {
+    if (syncError) setError(syncError);
+  }, [syncError]);
 
   const bullish = useMemo(
     () => tickers.filter((t) => t.total_sentiment_score >= 45).slice(0, 8),
@@ -83,19 +185,24 @@ export default function QuiverAnalysisPanel() {
     [tickers]
   );
 
-  async function runSync() {
-    setRunning(true);
-    setError("");
-    try {
-      const res = await fetch("/api/analysis/run", { method: "POST", credentials: "same-origin" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Sync failed");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Sync failed");
-    } finally {
-      setRunning(false);
+  const sortedTickers = useMemo(
+    () => sortTickers(tickers, tableSortKey, tableSortDir),
+    [tickers, tableSortKey, tableSortDir]
+  );
+
+  const handleTableSort = useCallback((key: TableSortKey) => {
+    if (tableSortKey === key) {
+      setTableSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setTableSortKey(key);
+      setTableSortDir(key === "ticker" || key === "recommendation" ? "asc" : "desc");
     }
+  }, [tableSortKey]);
+
+  async function runSync() {
+    if (!onStartSync) return;
+    setError("");
+    await onStartSync();
   }
 
   if (loading) {
@@ -145,10 +252,10 @@ export default function QuiverAnalysisPanel() {
           <button
             type="button"
             onClick={() => void runSync()}
-            disabled={running}
+            disabled={syncing}
             className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50"
           >
-            {running ? "Syncing…" : "Sync Quiver data"}
+            {syncing ? "Syncing…" : "Sync Quiver data"}
           </button>
         </div>
       </div>
@@ -224,22 +331,25 @@ export default function QuiverAnalysisPanel() {
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-white/10">
+        <p className="px-3 py-2 text-[10px] text-white/40 border-b border-white/10">
+          Click a column header to sort.
+        </p>
         <table className="w-full text-xs">
           <thead className="bg-navy/95 text-left text-[10px] uppercase tracking-wide text-white/50">
             <tr>
-              <th className="px-3 py-2">Ticker</th>
-              <th className="px-3 py-2">Recommendation</th>
-              <th className="px-3 py-2">Sentiment</th>
-              <th className="px-3 py-2">Risk</th>
-              <th className="px-3 py-2">V/R</th>
-              <th className="px-3 py-2">Conf</th>
-              <th className="px-3 py-2">Congress</th>
-              <th className="px-3 py-2">Insider</th>
-              <th className="px-3 py-2">13F</th>
+              <SortableHeader label="Ticker" sortKey="ticker" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="Recommendation" sortKey="recommendation" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="Sentiment" sortKey="sentiment" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="Risk" sortKey="risk" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="V/R" sortKey="value_to_risk" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="Conf" sortKey="confidence" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="Congress" sortKey="congress" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="Insider" sortKey="insider" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
+              <SortableHeader label="13F" sortKey="hedge_fund" activeKey={tableSortKey} dir={tableSortDir} onSort={handleTableSort} />
             </tr>
           </thead>
           <tbody className="divide-y divide-white/10">
-            {tickers.map((t) => (
+            {sortedTickers.map((t) => (
               <tr
                 key={t.ticker}
                 className="hover:bg-white/5 cursor-pointer"

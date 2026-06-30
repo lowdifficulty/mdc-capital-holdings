@@ -33,11 +33,26 @@ export async function ingestAllDatasets(): Promise<{
   eventsAdded: number;
   errors: string[];
 }> {
+  const run = await startRun("Full Quiver ingestion");
+  const { eventsAdded, errors, processed } = await ingestDatasets(run.id);
+  await finishRun(run.id, {
+    status: errors.length && !processed.length ? "failed" : "completed",
+    datasetsProcessed: processed,
+    tickersProcessed: await getUniqueTickers(),
+    errors,
+  });
+  return { runId: run.id, eventsAdded, errors };
+}
+
+async function ingestDatasets(runId: string): Promise<{
+  eventsAdded: number;
+  errors: string[];
+  processed: string[];
+}> {
   if (!getQuiverApiKey()) {
     throw new Error("QUIVER_API_KEY not configured");
   }
 
-  const run = await startRun("Full Quiver ingestion");
   let eventsAdded = 0;
   const errors: string[] = [];
   const processed: string[] = [];
@@ -54,6 +69,7 @@ export async function ingestAllDatasets(): Promise<{
       const added = await upsertEvents(normalized);
       eventsAdded += added;
       processed.push(endpoint.dataset);
+      await finishRun(runId, { datasetsProcessed: [...processed], errors });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`${endpoint.dataset}: ${msg}`);
@@ -61,14 +77,7 @@ export async function ingestAllDatasets(): Promise<{
     }
   }
 
-  await finishRun(run.id, {
-    status: errors.length === processed.length ? "failed" : "completed",
-    datasetsProcessed: processed,
-    tickersProcessed: await getUniqueTickers(),
-    errors,
-  });
-
-  return { runId: run.id, eventsAdded, errors };
+  return { eventsAdded, errors, processed };
 }
 
 export async function scoreAllTickers(
@@ -114,9 +123,22 @@ export async function runFullAnalysis(): Promise<{
   ingestion: { runId: string; eventsAdded: number; errors: string[] };
   scores: TickerDailyScore[];
 }> {
-  const ingestion = await ingestAllDatasets();
-  const scores = await scoreAllTickers();
-  return { ingestion, scores };
+  const run = await startRun("Full Quiver analysis");
+  try {
+    const { eventsAdded, errors, processed } = await ingestDatasets(run.id);
+    const scores = await scoreAllTickers();
+    await finishRun(run.id, {
+      status: errors.length && !processed.length ? "failed" : "completed",
+      datasetsProcessed: processed,
+      tickersProcessed: scores.map((s) => s.ticker),
+      errors,
+    });
+    return { ingestion: { runId: run.id, eventsAdded, errors }, scores };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    await finishRun(run.id, { status: "failed", errors: [msg] });
+    throw err;
+  }
 }
 
 export async function getRankedTickers(
