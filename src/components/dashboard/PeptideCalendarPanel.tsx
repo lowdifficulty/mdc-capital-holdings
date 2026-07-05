@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   GHK_START,
   MELANOTAN_START,
-  TEST_START,
   SYRINGE_REFERENCE,
   dayDoseSummary,
   generateDosesForDate,

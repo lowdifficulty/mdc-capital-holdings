@@ -8,10 +8,6 @@ function parseDate(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function formatDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 function daysBetween(startIso: string, endIso: string): number {
   const a = parseDate(startIso);
   const b = parseDate(endIso);
