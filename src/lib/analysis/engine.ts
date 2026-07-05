@@ -84,7 +84,7 @@ export async function scoreAllTickers(
   tickers?: string[],
   lookbackDays = defaultLookbackDays()
 ): Promise<TickerDailyScore[]> {
-  const events = await getAllEvents(20_000);
+  const events = await getAllEvents();
   const universe =
     tickers ??
     [...new Set([...defaultTickerUniverse(), ...(await getUniqueTickers())])].slice(0, 120);

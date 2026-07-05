@@ -27,11 +27,13 @@ export interface DatasetResult {
 export function scoreTicker(
   ticker: string,
   events: QuiverRawEvent[],
-  lookbackDays: number
+  lookbackDays: number,
+  allEvents?: QuiverRawEvent[]
 ): { datasets: DatasetResult[]; totalSentiment: number; confidence: number } {
   const tickerEvents = events.filter((e) => e.ticker === ticker.toUpperCase());
+  const clusterPool = allEvents ?? events;
 
-  const congress = scoreCongressDataset(tickerEvents, lookbackDays);
+  const congress = scoreCongressDataset(tickerEvents, lookbackDays, clusterPool);
   const insider = scoreInsiderDataset(tickerEvents, lookbackDays);
   const hedge = scoreHedgeFundDataset(tickerEvents, lookbackDays);
   const gov = scoreGovContractDataset(tickerEvents, lookbackDays);

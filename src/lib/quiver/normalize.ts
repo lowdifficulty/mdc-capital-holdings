@@ -198,11 +198,12 @@ export function normalizeOffExchangeRow(row: Row): QuiverRawEvent | null {
 }
 
 export function normalizeNewsRow(row: Row): QuiverRawEvent | null {
-  const title = String(row.Title ?? row.title ?? "News");
+  const title = String(row.Title ?? row.title ?? row.headline ?? row.Headline ?? "News");
   return baseEvent("newsfeed", row, {
     actorType: "news",
     transactionType: "Headline",
-    eventDate: pickDate(row, ["time", "publishedAt"]),
+    eventDate: pickDate(row, ["time", "publishedAt", "published_at", "date"]),
+    filedDate: pickDate(row, ["time", "publishedAt", "published_at", "date"]),
     description: title.slice(0, 280),
   });
 }

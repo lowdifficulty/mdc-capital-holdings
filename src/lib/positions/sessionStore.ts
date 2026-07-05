@@ -1,7 +1,7 @@
 import "server-only";
 import { getSession } from "@/lib/auth/session";
 import { readPositionsFile, writePositionsFile } from "./fileStore";
-import { PORTFOLIO_SEED_VERSION, toPositions } from "./portfolioSeed";
+import { PORTFOLIO_SEED_VERSION, applySeedCostBasis, toPositions } from "./portfolioSeed";
 import type { Position } from "./types";
 
 function normalizeSymbol(symbol: string): string {
@@ -20,7 +20,7 @@ function normalizeAvgCost(avgCost: number): number {
 
 async function seedSessionPositions(): Promise<Position[]> {
   const session = await getSession();
-  const seeded = toPositions();
+  const seeded = applySeedCostBasis(toPositions());
   session.positions = seeded;
   session.portfolioSeedVersion = PORTFOLIO_SEED_VERSION;
   await session.save();
@@ -37,13 +37,26 @@ async function loadPositions(): Promise<Position[]> {
   if (session.portfolioSeedVersion !== PORTFOLIO_SEED_VERSION) {
     return seedSessionPositions();
   }
-  if (session.positions?.length) return session.positions;
+  if (session.positions?.length) {
+    const pinned = applySeedCostBasis(session.positions);
+    const changed =
+      pinned.length !== session.positions.length ||
+      pinned.some(
+        (p, i) =>
+          p.symbol !== session.positions![i]?.symbol ||
+          p.shares !== session.positions![i]?.shares ||
+          p.avgCost !== session.positions![i]?.avgCost
+      );
+    if (changed) return persistPositions(pinned);
+    return pinned;
+  }
 
   const filePositions = await readPositionsFile();
   if (filePositions.length > 0) {
-    session.positions = filePositions;
+    const pinned = applySeedCostBasis(filePositions);
+    session.positions = pinned;
     await session.save();
-    return filePositions;
+    return pinned;
   }
 
   return seedSessionPositions();

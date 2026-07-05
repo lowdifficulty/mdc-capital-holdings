@@ -34,7 +34,11 @@ export function scoreCongressEvent(event: QuiverRawEvent, allEvents: QuiverRawEv
   return 100 * direction * amt * recency * disclosure * clusterMultiplier;
 }
 
-export function scoreCongressDataset(events: QuiverRawEvent[], lookbackDays: number): {
+export function scoreCongressDataset(
+  events: QuiverRawEvent[],
+  lookbackDays: number,
+  allEvents?: QuiverRawEvent[]
+): {
   score: number;
   confidence: number;
   explanation: string;
@@ -50,12 +54,13 @@ export function scoreCongressDataset(events: QuiverRawEvent[], lookbackDays: num
     return { score: 0, confidence: 0, explanation: "No recent Congress trades on file." };
   }
 
-  const scores = congress.map((e) => scoreCongressEvent(e, events));
+  const scores = congress.map((e) => scoreCongressEvent(e, allEvents ?? events));
   const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
   const buys = congress.filter((e) => tradeDirection(e.transactionType) > 0).length;
   const sells = congress.filter((e) => tradeDirection(e.transactionType) < 0).length;
-  const clusterBuy = clusterCount(events, events[0]?.ticker ?? "", 30, 1);
-  const clusterSell = clusterCount(events, events[0]?.ticker ?? "", 30, -1);
+  const ticker = events[0]?.ticker ?? congress[0]?.ticker ?? "";
+  const clusterBuy = clusterCount(allEvents ?? events, ticker, 30, 1);
+  const clusterSell = clusterCount(allEvents ?? events, ticker, 30, -1);
 
   let explanation = `${congress.length} Congress trade(s): ${buys} buy, ${sells} sell.`;
   if (clusterBuy >= 2) explanation += ` Cluster buy (${clusterBuy} politicians).`;

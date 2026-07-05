@@ -116,6 +116,19 @@ function SortableHeader({
   );
 }
 
+interface CongressTrade {
+  ticker: string;
+  actorName?: string;
+  transactionType?: string;
+  filedDate?: string;
+  eventDate?: string;
+  sentimentScore: number;
+  direction: string;
+  sourceDataset: string;
+  party?: string;
+  chamber?: string;
+}
+
 interface RunStatus {
   lastRun?: { status: string; finishedAt?: string; errors: string[] };
   store?: { eventCount: number; tickerCount: number; lastSyncAt?: string };
@@ -129,6 +142,7 @@ export default function QuiverAnalysisPanel({
 }: QuiverAnalysisPanelProps) {
   const [tickers, setTickers] = useState<TickerDailyScore[]>([]);
   const [clusters, setClusters] = useState<CongressCluster[]>([]);
+  const [congressTrades, setCongressTrades] = useState<CongressTrade[]>([]);
   const [status, setStatus] = useState<RunStatus | null>(null);
   const [selected, setSelected] = useState<TickerDailyScore | null>(null);
   const [sort, setSort] = useState<ApiSortKey>("value_to_risk");
@@ -140,9 +154,10 @@ export default function QuiverAnalysisPanel({
   const load = useCallback(async () => {
     setError("");
     try {
-      const [topRes, clusterRes, statusRes] = await Promise.all([
+      const [topRes, clusterRes, congressRes, statusRes] = await Promise.all([
         fetch(`/api/analysis/top?sort=${sort}&limit=50`, { credentials: "same-origin" }),
         fetch("/api/analysis/congress/clusters?window=30", { credentials: "same-origin" }),
+        fetch("/api/analysis/congress?days=30", { credentials: "same-origin" }),
         fetch("/api/analysis/run-status", { credentials: "same-origin" }),
       ]);
       if (!topRes.ok) throw new Error("Failed to load analysis");
@@ -151,6 +166,10 @@ export default function QuiverAnalysisPanel({
       if (clusterRes.ok) {
         const c = (await clusterRes.json()) as { clusters: CongressCluster[] };
         setClusters(c.clusters ?? []);
+      }
+      if (congressRes.ok) {
+        const c = (await congressRes.json()) as { trades: CongressTrade[] };
+        setCongressTrades(c.trades ?? []);
       }
       if (statusRes.ok) setStatus(await statusRes.json());
     } catch {
@@ -326,6 +345,51 @@ export default function QuiverAnalysisPanel({
                 {c.ticker} · {c.count} {c.direction}s
               </span>
             ))}
+          </div>
+        </section>
+      )}
+
+      {congressTrades.length > 0 && (
+        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50">
+            Recent Congress trades (30d)
+          </h3>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-left text-[10px] uppercase tracking-wide text-white/40">
+                <tr>
+                  <th className="px-2 py-1.5">Ticker</th>
+                  <th className="px-2 py-1.5">Politician</th>
+                  <th className="px-2 py-1.5">Trade</th>
+                  <th className="px-2 py-1.5">Filed</th>
+                  <th className="px-2 py-1.5">Score</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {congressTrades.slice(0, 25).map((t, i) => (
+                  <tr key={`${t.ticker}-${t.actorName}-${i}`} className="hover:bg-white/5">
+                    <td className="px-2 py-1.5 font-semibold">{t.ticker}</td>
+                    <td className="px-2 py-1.5 text-white/70">
+                      {t.actorName}
+                      {t.party ? ` (${t.party})` : ""}
+                    </td>
+                    <td
+                      className={`px-2 py-1.5 ${
+                        t.direction === "buy" ? "text-emerald-400" : t.direction === "sell" ? "text-red-400" : "text-white/60"
+                      }`}
+                    >
+                      {t.transactionType}
+                    </td>
+                    <td className="px-2 py-1.5 tabular-nums text-white/50">
+                      {t.filedDate ? new Date(t.filedDate).toLocaleDateString() : "—"}
+                    </td>
+                    <td className={`px-2 py-1.5 tabular-nums ${scoreColor(t.sentimentScore)}`}>
+                      {formatMoney(t.sentimentScore)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </section>
       )}

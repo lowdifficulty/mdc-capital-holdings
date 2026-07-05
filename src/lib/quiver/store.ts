@@ -70,9 +70,21 @@ export async function getEventsForTicker(ticker: string, limit = 200): Promise<Q
     .slice(0, limit);
 }
 
-export async function getAllEvents(limit = 5000): Promise<QuiverRawEvent[]> {
+export async function getAllEvents(limit?: number): Promise<QuiverRawEvent[]> {
   const store = await readStore();
+  if (limit == null || limit <= 0) return store.events;
   return store.events.slice(-limit);
+}
+
+/** All congress-related events from the full store (not tail-limited). */
+export async function getAllCongressEvents(): Promise<QuiverRawEvent[]> {
+  const store = await readStore();
+  return store.events.filter(
+    (e) =>
+      e.sourceDataset === "congress_trades" ||
+      e.sourceDataset === "senate_trades" ||
+      e.sourceDataset === "house_trades"
+  );
 }
 
 export async function getCongressEvents(windowDays: number): Promise<QuiverRawEvent[]> {

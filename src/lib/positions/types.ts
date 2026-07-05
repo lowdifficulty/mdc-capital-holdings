@@ -5,6 +5,16 @@ export interface Position {
   addedAt: string;
 }
 
+export interface RealizedTrade {
+  symbol: string;
+  shares: number;
+  buyPrice: number;
+  sellPrice: number;
+  realizedPnL: number;
+  tradeDate: string;
+  account: "fidelity" | "trading";
+}
+
 export interface PositionWithQuote extends Position {
   price?: number;
   dailyChange?: number;
@@ -31,6 +41,7 @@ export interface PositionsSummary {
 
 export interface PositionsReport {
   positions: PositionWithQuote[];
+  realizedTrades?: RealizedTrade[];
   summary: PositionsSummary;
   updatedAt: string;
 }

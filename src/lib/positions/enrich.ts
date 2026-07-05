@@ -1,6 +1,6 @@
 import "server-only";
-import { fetchBulkPriceSnapshots } from "@/lib/sentiment/prices";
-import { PORTFOLIO_CASH, totalCashBalance } from "./portfolioSeed";
+import { fetchLiveBulkPriceSnapshots } from "@/lib/sentiment/prices";
+import { PORTFOLIO_CASH, PORTFOLIO_REALIZED_TRADES, totalCashBalance } from "./portfolioSeed";
 import type { Position, PositionWithQuote, PositionsReport, PositionsSummary } from "./types";
 
 function priorClose(price: number, dailyChangePct: number): number {
@@ -46,7 +46,7 @@ function buildSummary(positions: PositionWithQuote[]): PositionsSummary {
 
 export async function enrichPositions(positions: Position[]): Promise<PositionsReport> {
   const symbols = positions.map((p) => p.symbol);
-  const priceMap = await fetchBulkPriceSnapshots(symbols);
+  const priceMap = await fetchLiveBulkPriceSnapshots(symbols);
 
   const enriched: PositionWithQuote[] = positions.map((p) => {
     const quote = priceMap.get(p.symbol);
@@ -84,6 +84,7 @@ export async function enrichPositions(positions: Position[]): Promise<PositionsR
 
   return {
     positions: enriched.sort((a, b) => (b.marketValue ?? 0) - (a.marketValue ?? 0)),
+    realizedTrades: PORTFOLIO_REALIZED_TRADES,
     summary: buildSummary(enriched),
     updatedAt: new Date().toISOString(),
   };

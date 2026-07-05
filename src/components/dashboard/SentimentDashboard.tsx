@@ -8,6 +8,7 @@ import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
 import MoversMobileList from "@/components/dashboard/MoversMobileList";
 import PositionsPanel from "@/components/dashboard/PositionsPanel";
 import QuiverAnalysisPanel from "@/components/dashboard/QuiverAnalysisPanel";
+import PeptideCalendarPanel from "@/components/dashboard/PeptideCalendarPanel";
 import {
   formatSentimentScore,
   formatMentions,
@@ -28,7 +29,18 @@ import { useQuiverSync } from "@/hooks/useQuiverSync";
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
 
-type DashboardView = SentimentPeriod | "movers" | "positions" | "quiver";
+type MainTab = "health" | "finance";
+type FinanceView = SentimentPeriod | "movers" | "positions" | "quiver";
+type DashboardView = "peptides" | FinanceView;
+
+const FINANCE_TABS: ReadonlyArray<[FinanceView, string]> = [
+  ["positions", "My Positions"],
+  ["quiver", "QuiverQuant"],
+  ["movers", "Movers"],
+  ["24h", "24 hr"],
+  ["week", "Week"],
+  ["month", "Month"],
+];
 
 function periodTitle(period: SentimentPeriod): string {
   if (period === "24h") return "24 hr sentiment";
@@ -213,7 +225,14 @@ function reportCacheKey(symbol: string, period: SentimentPeriod): string {
 
 export default function SentimentDashboard() {
   const router = useRouter();
-  const [view, setView] = useState<DashboardView>("positions");
+  const [mainTab, setMainTab] = useState<MainTab>("health");
+  const [financeView, setFinanceView] = useState<FinanceView>("positions");
+  const view: DashboardView = mainTab === "health" ? "peptides" : financeView;
+
+  function openFinanceView(next: FinanceView) {
+    setMainTab("finance");
+    setFinanceView(next);
+  }
   const [symbol, setSymbol] = useState("AAPL");
   const [draft, setDraft] = useState("AAPL");
   const [report, setReport] = useState<SentimentReport | null>(null);
@@ -423,7 +442,7 @@ export default function SentimentDashboard() {
           return;
         }
 
-        if (view === "positions" || view === "quiver") {
+        if (view === "positions" || view === "quiver" || view === "peptides") {
           if (!silent) setLoading(false);
           return;
         }
@@ -467,7 +486,7 @@ export default function SentimentDashboard() {
   }, [cacheReady, loadDashboardData]);
 
   useEffect(() => {
-    if (view !== "movers" && view !== "positions" && view !== "quiver") setMoverFilter("all");
+    if (view !== "movers" && view !== "positions" && view !== "quiver" && view !== "peptides") setMoverFilter("all");
   }, [view]);
 
   useEffect(() => {
@@ -476,7 +495,7 @@ export default function SentimentDashboard() {
   }, [loadWatchlist, loadPositionSymbols]);
 
   useEffect(() => {
-    if (!autoRefresh || view === "movers" || view === "positions" || view === "quiver") return;
+    if (!autoRefresh || view === "movers" || view === "positions" || view === "quiver" || view === "peptides") return;
     const id = window.setInterval(
       () => void loadDashboardData({ force: true, silent: true }),
       POLL_MS
@@ -499,7 +518,7 @@ export default function SentimentDashboard() {
     const next = draft.trim().toUpperCase();
     if (!next) return;
     setSymbol(next);
-    if (view === "movers") setView("24h");
+    if (view === "movers") openFinanceView("24h");
   }
 
   const warnings = report?.warnings ?? movers?.warnings ?? [];
@@ -517,7 +536,7 @@ export default function SentimentDashboard() {
             </Link>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">Market Dashboard</p>
-              <p className="hidden text-xs text-white/50 sm:block">Positions · Movers · 24 hr · Week · Month</p>
+              <p className="hidden text-xs text-white/50 sm:block">Health · Finance</p>
             </div>
           </div>
           <button
@@ -530,44 +549,59 @@ export default function SentimentDashboard() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-        <div className="-mx-4 flex gap-2 overflow-x-auto border-b border-white/10 px-4 pb-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
+        <div className="flex gap-2">
           {(
             [
-              ["positions", "My Positions"],
-              ["quiver", "QuiverQuant"],
-              ["movers", "Movers"],
-              ["24h", "24 hr"],
-              ["week", "Week"],
-              ["month", "Month"],
+              ["health", "Health"],
+              ["finance", "Finance"],
             ] as const
           ).map(([key, label]) => (
             <button
               key={key}
               type="button"
-              onClick={() => setView(key)}
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition sm:px-5 ${
-                view === key
-                  ? "bg-mdc-blue text-white"
-                  : "border border-white/15 text-white/70 hover:border-white/30"
+              onClick={() => setMainTab(key)}
+              className={`touch-manipulation min-h-[48px] flex-1 rounded-2xl px-4 py-3 text-base font-bold transition active:opacity-90 sm:flex-none sm:min-h-0 sm:min-w-[140px] sm:px-6 ${
+                mainTab === key
+                  ? "bg-mdc-blue text-white shadow-lg shadow-mdc-blue/20"
+                  : "border border-white/15 text-white/70 hover:border-white/30 hover:text-white"
               }`}
             >
               {label}
-              {key === "quiver" && quiverSyncing && (
-                <span className="ml-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              )}
             </button>
           ))}
         </div>
 
-        {quiverSyncing && view !== "quiver" && (
+        {mainTab === "finance" && (
+          <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto border-b border-white/10 px-4 pb-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+            {FINANCE_TABS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFinanceView(key)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition sm:px-5 ${
+                  financeView === key
+                    ? "bg-white/15 text-white ring-1 ring-white/20"
+                    : "border border-white/15 text-white/70 hover:border-white/30"
+                }`}
+              >
+                {label}
+                {key === "quiver" && quiverSyncing && (
+                  <span className="ml-1.5 inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {quiverSyncing && mainTab === "finance" && view !== "quiver" && (
           <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-2.5 text-sm text-emerald-200">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
             Quiver data sync in progress — you can keep browsing other tabs.
           </div>
         )}
 
-        {view !== "movers" && view !== "positions" && view !== "quiver" && (
+        {view !== "movers" && view !== "positions" && view !== "quiver" && view !== "peptides" && (
           <>
             <form onSubmit={handleAnalyze} className="mt-6 flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
@@ -628,13 +662,19 @@ export default function SentimentDashboard() {
             onOpenSentiment={(sym) => {
               setDraft(sym);
               setSymbol(sym);
-              setView("24h");
+              openFinanceView("24h");
               setExpandedSymbol(null);
             }}
           />
         )}
 
-        <div className={view === "quiver" ? undefined : "hidden"} aria-hidden={view !== "quiver"}>
+        <div className={mainTab === "health" ? undefined : "hidden"} aria-hidden={mainTab !== "health"}>
+          <div className="max-w-3xl sm:max-w-none">
+            <PeptideCalendarPanel />
+          </div>
+        </div>
+
+        <div className={mainTab === "finance" && financeView === "quiver" ? undefined : "hidden"} aria-hidden={!(mainTab === "finance" && financeView === "quiver")}>
           <QuiverAnalysisPanel
             syncing={quiverSyncing}
             syncError={quiverSyncError}
@@ -681,13 +721,13 @@ export default function SentimentDashboard() {
 
         {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
 
-        {loading && !report && !movers && view !== "positions" && view !== "quiver" && (
+        {loading && !report && !movers && view !== "positions" && view !== "quiver" && view !== "peptides" && (
           <p className="mt-12 text-center text-white/50">
             {loadingPeriodLabel(view)}
           </p>
         )}
 
-        {report && view !== "movers" && view !== "positions" && view !== "quiver" && (
+        {report && view !== "movers" && view !== "positions" && view !== "quiver" && view !== "peptides" && (
           <div className="mt-6 space-y-6 sm:mt-8 sm:space-y-8">
             <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:col-span-1">
@@ -818,7 +858,7 @@ export default function SentimentDashboard() {
                         onClick={() => {
                           setDraft(m.symbol);
                           setSymbol(m.symbol);
-                          setView("24h");
+                          openFinanceView("24h");
                         }}
                         className="font-semibold hover:text-mdc-blue"
                       >
@@ -925,7 +965,7 @@ export default function SentimentDashboard() {
               onOpenSentiment={(sym) => {
                 setDraft(sym);
                 setSymbol(sym);
-                setView("24h");
+                openFinanceView("24h");
                 setExpandedSymbol(null);
               }}
             />
@@ -1073,7 +1113,7 @@ export default function SentimentDashboard() {
                                 onOpenSentiment={() => {
                                   setDraft(m.symbol);
                                   setSymbol(m.symbol);
-                                  setView("24h");
+                                  openFinanceView("24h");
                                   setExpandedSymbol(null);
                                 }}
                               />

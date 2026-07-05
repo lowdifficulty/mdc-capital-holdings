@@ -1,7 +1,7 @@
-import type { Position } from "./types";
+import type { Position, RealizedTrade } from "./types";
 
 /** Bump when screenshot holdings change — forces session re-sync on next load. */
-export const PORTFOLIO_SEED_VERSION = 4;
+export const PORTFOLIO_SEED_VERSION = 5;
 
 interface Lot {
   symbol: string;
@@ -34,9 +34,22 @@ const TRADING_LOTS: Lot[] = [
   { symbol: "RBLX", shares: 2, avgCost: 54.0 },
 ];
 
+/** Closed round-trips and realized P&L (not open holdings). */
+export const PORTFOLIO_REALIZED_TRADES: RealizedTrade[] = [
+  {
+    symbol: "DELL",
+    shares: 1,
+    buyPrice: 432.3,
+    sellPrice: 422.5,
+    realizedPnL: -9.8,
+    tradeDate: "2026-06-30",
+    account: "fidelity",
+  },
+];
+
 /** Cash from brokerage screenshots (Fidelity pending activity + trading net − positions). */
 export const PORTFOLIO_CASH = {
-  fidelity: 47_957.46,
+  fidelity: 47_947.66,
   trading: 49_002.67,
 } as const;
 
@@ -65,6 +78,25 @@ function mergeLots(lots: Lot[]): Array<{ symbol: string; shares: number; avgCost
 }
 
 export const PORTFOLIO_POSITIONS = mergeLots([...FIDELITY_LOTS, ...TRADING_LOTS]);
+
+const SEED_BY_SYMBOL = new Map(
+  PORTFOLIO_POSITIONS.map((p) => [p.symbol.toUpperCase(), p] as const)
+);
+
+/** Pin shares/avg cost to brokerage seed — never derived from live quotes. */
+export function applySeedCostBasis(positions: Position[]): Position[] {
+  return positions
+    .map((p) => {
+      const seed = SEED_BY_SYMBOL.get(p.symbol.toUpperCase());
+      if (!seed) return p;
+      return {
+        ...p,
+        shares: seed.shares,
+        avgCost: seed.avgCost,
+      };
+    })
+    .filter((p) => p.shares > 0);
+}
 
 export function toPositions(seed = PORTFOLIO_POSITIONS): Position[] {
   const now = new Date().toISOString();

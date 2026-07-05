@@ -295,9 +295,14 @@ export default function PositionsPanel({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
           <p className="text-sm text-white/55">
-            Live P&amp;L across your holdings. Click a symbol for 24 hr sentiment analysis.
-            Click a column header to sort. Prices auto-refresh every 60 seconds.
+            Avg cost is your fixed purchase price from brokerage records. Last price and P&amp;L use
+            live quotes (refresh every 60 seconds). Click a symbol for 24 hr sentiment analysis.
           </p>
+          {report?.updatedAt && (
+            <p className="mt-1 text-xs text-white/40">
+              Quotes as of {formatTime(report.updatedAt)}
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -348,6 +353,44 @@ export default function PositionsPanel({
             </p>
           </div>
         </div>
+      )}
+
+      {(report?.realizedTrades?.length ?? 0) > 0 && (
+        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-white/50">Closed trades</h3>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="text-left text-[10px] uppercase tracking-wide text-white/40">
+                <tr>
+                  <th className="px-2 py-1.5">Date</th>
+                  <th className="px-2 py-1.5">Symbol</th>
+                  <th className="px-2 py-1.5">Qty</th>
+                  <th className="px-2 py-1.5">Buy</th>
+                  <th className="px-2 py-1.5">Sell</th>
+                  <th className="px-2 py-1.5">Realized P&amp;L</th>
+                  <th className="px-2 py-1.5">Account</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {report!.realizedTrades!.map((t) => (
+                  <tr key={`${t.symbol}-${t.tradeDate}`}>
+                    <td className="px-2 py-2 tabular-nums text-white/60">
+                      {new Date(t.tradeDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </td>
+                    <td className="px-2 py-2 font-semibold">{t.symbol}</td>
+                    <td className="px-2 py-2 tabular-nums">{formatShares(t.shares)}</td>
+                    <td className="px-2 py-2 tabular-nums">{formatMoney(t.buyPrice)}</td>
+                    <td className="px-2 py-2 tabular-nums">{formatMoney(t.sellPrice)}</td>
+                    <td className={`px-2 py-2 tabular-nums font-medium ${pnlColor(t.realizedPnL)}`}>
+                      {formatMoney(t.realizedPnL)}
+                    </td>
+                    <td className="px-2 py-2 capitalize text-white/50">{t.account}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       )}
 
       {positions.length === 0 ? (

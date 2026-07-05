@@ -270,3 +270,32 @@ export async function fetchBulkPriceSnapshotsWithStats(
     fetched: patches.size,
   };
 }
+
+/** Live Yahoo quotes for portfolio P&L — always fetches market price, never stale bar-only estimates. */
+export async function fetchLiveBulkPriceSnapshots(
+  symbols: string[],
+  concurrency = 5
+): Promise<Map<string, PriceSnapshot>> {
+  const unique = [...new Set(symbols.map((s) => s.toUpperCase()))];
+  const out = new Map<string, PriceSnapshot>();
+  const patches = new Map<string, { snapshot?: PriceSnapshot; dailyBars?: DailyBar[] }>();
+
+  for (let i = 0; i < unique.length; i += concurrency) {
+    const batch = unique.slice(i, i + concurrency);
+    const results = await Promise.all(
+      batch.map(async (symbol) => {
+        const fetched = await fetchAndCacheSymbol(symbol, "1y");
+        return { symbol, ...fetched };
+      })
+    );
+
+    for (const { symbol, snapshot, dailyBars } of results) {
+      if (!snapshot) continue;
+      out.set(symbol, snapshot);
+      patches.set(symbol, { snapshot, dailyBars: dailyBars.length ? dailyBars : undefined });
+    }
+  }
+
+  if (patches.size) await upsertManySymbolEntries(patches);
+  return out;
+}
