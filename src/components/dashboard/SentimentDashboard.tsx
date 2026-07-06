@@ -11,6 +11,7 @@ import QuiverAnalysisPanel from "@/components/dashboard/QuiverAnalysisPanel";
 import PeptideCalendarPanel from "@/components/dashboard/PeptideCalendarPanel";
 import FamilyPanel from "@/components/dashboard/FamilyPanel";
 import CommunityPanel from "@/components/dashboard/CommunityPanel";
+import { AlfredVoicePanel } from "@/components/dashboard/AlfredVoicePanel";
 import {
   formatSentimentScore,
   formatMentions,
@@ -1259,6 +1260,8 @@ export default function SentimentDashboard() {
           </div>
         )}
       </div>
+
+      <AlfredVoicePanel />
     </div>
   );
 }
