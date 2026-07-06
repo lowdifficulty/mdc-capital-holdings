@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
   SYRINGE_REFERENCE,
   dayDoseSummary,
@@ -326,6 +327,7 @@ function DayDetailModal({
   const [sectionOrder, setSectionOrder] = useState<DaySectionId[]>(() => getDaySectionOrder());
   const [dragSectionId, setDragSectionId] = useState<DaySectionId | null>(null);
   const [dragOverSectionId, setDragOverSectionId] = useState<DaySectionId | null>(null);
+  const [portalReady, setPortalReady] = useState(false);
   const custody = custodyLabel(iso);
   const programDay = isProgramDay(iso);
   const dosesDone = doses.filter((d) => peptideCompleted.has(d.id)).length;
@@ -390,6 +392,10 @@ function DayDetailModal({
     return () => {
       document.body.style.overflow = prev;
     };
+  }, []);
+
+  useEffect(() => {
+    setPortalReady(true);
   }, []);
 
   function updateJournal(next: DayJournal) {
@@ -660,17 +666,20 @@ function DayDetailModal({
     }
   }
 
-  return (
+  if (!portalReady) return null;
+
+  return createPortal(
     <div
-      className="fixed inset-x-0 bottom-0 top-[var(--dashboard-menu-h)] z-50 flex items-start justify-center bg-black/60 sm:inset-0 sm:items-center sm:p-4"
+      className="fixed inset-x-0 bottom-0 top-[var(--dashboard-menu-h)] z-50 flex items-start justify-center bg-black/60 sm:inset-0 sm:z-[70] sm:items-center sm:justify-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden rounded-b-2xl border border-white/10 border-t-0 bg-navy shadow-2xl sm:max-h-[90vh] sm:rounded-2xl sm:border-t"
+        className="flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden rounded-b-2xl border border-white/10 border-t-0 bg-navy shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:border-t"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="day-detail-title"
+        aria-modal="true"
       >
         <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-white/10 bg-navy px-4 py-3 sm:px-5 sm:py-4 sm:pt-[max(0.75rem,env(safe-area-inset-top))]">
           <div className="min-w-0 flex-1">
@@ -730,7 +739,8 @@ function DayDetailModal({
         )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

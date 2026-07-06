@@ -299,10 +299,9 @@ export default function SentimentDashboard() {
 
     const updateMenuHeight = () => {
       const isMobile = window.matchMedia("(max-width: 639px)").matches;
-      root.style.setProperty(
-        "--dashboard-menu-h",
-        isMobile ? `${menu.offsetHeight}px` : "0px"
-      );
+      const height = isMobile ? `${menu.offsetHeight}px` : "0px";
+      root.style.setProperty("--dashboard-menu-h", height);
+      document.documentElement.style.setProperty("--dashboard-menu-h", height);
     };
 
     updateMenuHeight();
@@ -312,6 +311,7 @@ export default function SentimentDashboard() {
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", updateMenuHeight);
+      document.documentElement.style.removeProperty("--dashboard-menu-h");
     };
   }, []);
 
