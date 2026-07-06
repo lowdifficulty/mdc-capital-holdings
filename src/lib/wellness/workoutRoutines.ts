@@ -81,8 +81,8 @@ export const WORKOUT_ROUTINES: Record<RoutineId, WorkoutRoutine> = {
   },
 };
 
-/** PPL UL split day index → routine (rest days have no routine). */
-const SPLIT_ROUTINE: (RoutineId | null)[] = ["push", "pull", "legs", "upper", "lower", null, null];
+/** PPL UL split day index → routine (5-day cycle, no rest). */
+const SPLIT_ROUTINE: RoutineId[] = ["push", "pull", "legs", "upper", "lower"];
 
 export function routineIdForSplitDay(dayIndex: number): RoutineId | null {
   return SPLIT_ROUTINE[dayIndex % SPLIT_ROUTINE.length] ?? null;

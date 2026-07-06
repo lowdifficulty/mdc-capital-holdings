@@ -275,6 +275,8 @@ export default function SentimentDashboard() {
   const [cacheReady, setCacheReady] = useState(false);
   const moversRef = useRef<MoversReport | null>(null);
   const reportCacheRef = useRef<Record<string, SentimentReport>>({});
+  const dashboardRootRef = useRef<HTMLDivElement>(null);
+  const dashboardMenuRef = useRef<HTMLDivElement>(null);
   const [expandedSymbol, setExpandedSymbol] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -289,6 +291,29 @@ export default function SentimentDashboard() {
   useEffect(() => {
     moversRef.current = movers;
   }, [movers]);
+
+  useEffect(() => {
+    const menu = dashboardMenuRef.current;
+    const root = dashboardRootRef.current;
+    if (!menu || !root) return;
+
+    const updateMenuHeight = () => {
+      const isMobile = window.matchMedia("(max-width: 639px)").matches;
+      root.style.setProperty(
+        "--dashboard-menu-h",
+        isMobile ? `${menu.offsetHeight}px` : "0px"
+      );
+    };
+
+    updateMenuHeight();
+    const observer = new ResizeObserver(updateMenuHeight);
+    observer.observe(menu);
+    window.addEventListener("resize", updateMenuHeight);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateMenuHeight);
+    };
+  }, []);
 
   useEffect(() => {
     const cached = readMoversCache();
@@ -561,43 +586,70 @@ export default function SentimentDashboard() {
   const warnings = report?.warnings ?? movers?.warnings ?? [];
 
   return (
-    <div className="dashboard-wayne relative min-h-screen text-[#eae6dc]">
+    <div
+      ref={dashboardRootRef}
+      className="dashboard-wayne relative min-h-screen text-[#eae6dc] [--dashboard-menu-h:0px]"
+    >
       <div className="pointer-events-none fixed inset-0 dashboard-wayne-texture" aria-hidden />
       <div className="pointer-events-none fixed inset-0 dashboard-wayne-gold-wash" aria-hidden />
 
-      <header className="sticky top-0 z-[60] border-b border-[#c9a227]/15 bg-[#050505]/95 backdrop-blur-md">
-        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <Link
-              href="/"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-[#c9a227] text-xs font-bold text-[#050505]"
-            >
-              MDC
-            </Link>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
-                Command center
-              </p>
-              <p className="truncate font-serif text-sm text-[#f8f4ec] sm:text-base">
-                Operations Dashboard
-              </p>
-              <p className="hidden truncate text-xs text-[#eae6dc]/45 lg:block">
-                Health · Finance · Family · Romance · Community · Purpose
-              </p>
+      <div
+        ref={dashboardMenuRef}
+        className="sticky top-0 z-[60] bg-[#050505]/95 backdrop-blur-md"
+      >
+        <header className="border-b border-[#c9a227]/15">
+          <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+              <Link
+                href="/"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-[#c9a227] text-xs font-bold text-[#050505]"
+              >
+                MDC
+              </Link>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
+                  Command center
+                </p>
+                <p className="truncate font-serif text-sm text-[#f8f4ec] sm:text-base">
+                  Operations Dashboard
+                </p>
+                <p className="hidden truncate text-xs text-[#eae6dc]/45 lg:block">
+                  Health · Finance · Family · Romance · Community · Purpose
+                </p>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => void handleLogout()}
+              className="shrink-0 rounded-sm border border-[#c9a227]/35 px-3 py-1.5 text-sm uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:border-[#c9a227] hover:text-[#c9a227]"
+            >
+              Sign out
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => void handleLogout()}
-            className="shrink-0 rounded-sm border border-[#c9a227]/35 px-3 py-1.5 text-sm uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:border-[#c9a227] hover:text-[#c9a227]"
-          >
-            Sign out
-          </button>
+        </header>
+
+        <div className="border-b border-[#c9a227]/10 sm:hidden">
+          <div className="-mx-0 flex gap-2 overflow-x-auto px-3 py-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+            {MAIN_TABS.map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setMainTab(key)}
+                className={`touch-manipulation min-h-[44px] shrink-0 rounded-sm px-3 py-2.5 text-sm font-bold uppercase tracking-wide transition active:opacity-90 sm:min-h-0 sm:px-4 sm:py-3 sm:text-base ${
+                  mainTab === key
+                    ? "bg-[#c9a227] text-[#050505] shadow-lg shadow-[#c9a227]/20"
+                    : "border border-[#c9a227]/20 text-[#eae6dc]/65 hover:border-[#c9a227]/40 hover:text-[#c9a227]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
-      </header>
+      </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
-        <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+        <div className="hidden gap-2 sm:flex sm:flex-wrap">
           {MAIN_TABS.map(([key, label]) => (
             <button
               key={key}

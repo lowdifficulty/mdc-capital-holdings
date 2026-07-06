@@ -1,4 +1,4 @@
-/** PPL UL — Push / Pull / Lower / Upper / Lower; Push on program start day (Jul 5). */
+/** PPL UL — Push / Pull / Lower / Upper / Lower (no rest days); Push on program start day (Jul 5). */
 
 import { routineIdForSplitDay, type RoutineId } from "@/lib/wellness/workoutRoutines";
 import { daysSinceProgramStart, isProgramDay } from "@/lib/wellness/programStart";
@@ -19,8 +19,6 @@ const SPLIT: { type: WorkoutType; label: string; focus: string }[] = [
   { type: "lower", label: "Lower", focus: "Quads, hamstrings, glutes, calves" },
   { type: "upper", label: "Upper", focus: "Chest, back, shoulders, arms" },
   { type: "lower", label: "Lower", focus: "Legs — hinge & squat emphasis" },
-  { type: "rest", label: "Rest", focus: "Recovery / mobility" },
-  { type: "rest", label: "Rest", focus: "Recovery" },
 ];
 
 /** Split anchored to program start — day 0 is Push. */
@@ -47,7 +45,7 @@ export function workoutsForRange(startIso: string, days: number): WorkoutDay[] {
 }
 
 export const WORKOUT_COLORS: Record<WorkoutType, string> = {
-  push: "border-orange-400/40 bg-orange-500/10 text-orange-200",
+  push: "border-purple-400/40 bg-purple-500/10 text-purple-200",
   pull: "border-blue-400/40 bg-blue-500/10 text-blue-200",
   lower: "border-emerald-400/40 bg-emerald-500/10 text-emerald-200",
   upper: "border-violet-400/40 bg-violet-500/10 text-violet-200",
@@ -55,7 +53,7 @@ export const WORKOUT_COLORS: Record<WorkoutType, string> = {
 };
 
 export const WORKOUT_CELL_TEXT: Record<WorkoutType, string> = {
-  push: "text-orange-300",
+  push: "text-purple-300",
   pull: "text-blue-300",
   lower: "text-emerald-300",
   upper: "text-violet-300",

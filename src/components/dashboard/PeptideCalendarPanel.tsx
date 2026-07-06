@@ -662,7 +662,7 @@ function DayDetailModal({
 
   return (
     <div
-      className="fixed inset-x-0 bottom-0 top-16 z-50 flex items-start justify-center bg-black/60 sm:inset-0 sm:items-center sm:p-4"
+      className="fixed inset-x-0 bottom-0 top-[var(--dashboard-menu-h)] z-50 flex items-start justify-center bg-black/60 sm:inset-0 sm:items-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >
@@ -885,12 +885,16 @@ export default function PeptideCalendarPanel() {
             const allDosesDone = doses.length === 0 || doneCount === doses.length;
             const allMealsDone = dayMeals.length === 0 || mealsDone === dayMeals.length;
             const workoutComplete = !workout || workout.type === "rest" || workoutDone;
-            const allDone = programDay && allDosesDone && allMealsDone && workoutComplete;
+            const todosComplete = journal.todos.length === 0 || openTodos === 0;
+            const allDone =
+              programDay && allDosesDone && allMealsDone && workoutComplete && todosComplete;
             const partial =
               programDay &&
+              !allDone &&
               ((doneCount > 0 && doneCount < doses.length) ||
                 (mealsDone > 0 && mealsDone < dayMeals.length) ||
-                (workout != null && workout.type !== "rest" && workoutDone));
+                (workout != null && workout.type !== "rest" && workoutDone) ||
+                (journal.todos.some((t) => t.done) && openTodos > 0));
 
             return (
               <button
@@ -900,15 +904,23 @@ export default function PeptideCalendarPanel() {
                 className={`group touch-manipulation min-h-[52px] border-b border-r border-white/10 p-1 text-left transition active:bg-white/10 sm:min-h-[96px] sm:p-2 ${
                   !programDay
                     ? "bg-black/10 opacity-40"
-                    : "hover:bg-white/[0.06]"
-                } ${todayCell ? "bg-mdc-blue/10 ring-1 ring-inset ring-mdc-blue/40 !opacity-100" : ""} ${
-                  kidsWeek ? "bg-sky-500/[0.07]" : ""
-                } ${allDone ? "bg-emerald-500/5" : ""}`}
+                    : allDone
+                      ? "bg-emerald-500/25 ring-1 ring-inset ring-emerald-400/50 hover:bg-emerald-500/30 !opacity-100"
+                      : "hover:bg-white/[0.06]"
+                } ${!allDone && todayCell ? "bg-mdc-blue/10 ring-1 ring-inset ring-mdc-blue/40 !opacity-100" : ""} ${
+                  !allDone && kidsWeek ? "bg-sky-500/[0.07]" : ""
+                }`}
               >
                 <div className="flex items-center justify-between gap-0.5">
                   <span
                     className={`text-[11px] font-bold tabular-nums sm:text-sm ${
-                      todayCell ? "text-mdc-blue" : programDay ? "text-white/80" : "text-white/40"
+                      allDone
+                        ? "text-emerald-300"
+                        : todayCell
+                          ? "text-mdc-blue"
+                          : programDay
+                            ? "text-white/80"
+                            : "text-white/40"
                     }`}
                   >
                     {parseIso(iso).getDate()}
