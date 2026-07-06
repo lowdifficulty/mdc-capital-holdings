@@ -565,7 +565,7 @@ export default function SentimentDashboard() {
       <div className="pointer-events-none fixed inset-0 dashboard-wayne-texture" aria-hidden />
       <div className="pointer-events-none fixed inset-0 dashboard-wayne-gold-wash" aria-hidden />
 
-      <header className="sticky top-0 z-20 border-b border-[#c9a227]/15 bg-[#050505]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-[60] border-b border-[#c9a227]/15 bg-[#050505]/95 backdrop-blur-md">
         <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Link
