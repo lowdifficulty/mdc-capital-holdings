@@ -51,14 +51,34 @@ const METRIC_FIELDS: {
   { key: "muscleMass", label: "Muscle mass", unit: "lb", placeholder: "145" },
 ];
 
+function formatMetricsSummary(metrics: DailyBodyMetrics): string {
+  const parts: string[] = [];
+  for (const field of METRIC_FIELDS) {
+    const value = metrics[field.key].trim();
+    if (!value) continue;
+    if (field.key === "weight") parts.push(`${value} lb`);
+    else if (field.key === "bodyFatPct") parts.push(`${value}% BF`);
+    else if (field.key === "bmi") parts.push(`BMI ${value}`);
+    else parts.push(`${value}${field.unit ? ` ${field.unit}` : ""}`);
+  }
+  return parts.join(" · ");
+}
+
 function DailyBodyMetricsPanel({ iso, embedded }: { iso: string; embedded?: boolean }) {
   const [metrics, setMetrics] = useState<DailyBodyMetrics>(() => getDailyBodyMetrics(iso));
   const [editing, setEditing] = useState(() => !getDailyBodyMetrics(iso).locked);
+  const [expanded, setExpanded] = useState(() => {
+    const loaded = getDailyBodyMetrics(iso);
+    const hasAny = METRIC_FIELDS.some((f) => loaded[f.key].trim());
+    return !loaded.locked || !hasAny;
+  });
 
   useEffect(() => {
     const loaded = getDailyBodyMetrics(iso);
+    const hasAny = METRIC_FIELDS.some((f) => loaded[f.key].trim());
     setMetrics(loaded);
     setEditing(!loaded.locked);
+    setExpanded(!loaded.locked || !hasAny);
   }, [iso]);
 
   function updateField(key: keyof Omit<DailyBodyMetrics, "locked">, value: string) {
@@ -69,84 +89,107 @@ function DailyBodyMetricsPanel({ iso, embedded }: { iso: string; embedded?: bool
     const saved = saveDailyBodyMetrics(iso, metrics);
     setMetrics(saved);
     setEditing(false);
+    setExpanded(false);
   }
 
   function handleEdit() {
     setEditing(true);
+    setExpanded(true);
   }
 
   const hasAnyValue = METRIC_FIELDS.some((f) => metrics[f.key].trim());
   const previous = !editing ? getPreviousBodyMetrics(iso) : null;
+  const summary = formatMetricsSummary(metrics);
 
   return (
     <div className={`px-0 py-3 sm:py-2.5 ${embedded ? "" : "border-t border-mdc-blue/20 px-3"}`}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-200/70">
-          Body composition
-        </p>
-        {editing ? (
-          <button
-            type="button"
-            onClick={handleSave}
-            className="touch-manipulation min-h-[36px] rounded-lg bg-mdc-blue px-3 py-1.5 text-xs font-semibold text-white active:opacity-90"
-          >
-            Save
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={handleEdit}
-            className="touch-manipulation min-h-[36px] rounded-lg border border-mdc-blue/30 px-3 py-1.5 text-xs font-semibold text-blue-200 active:bg-mdc-blue/10"
-          >
-            Edit
-          </button>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded((o) => !o)}
+        className="touch-manipulation flex w-full items-start justify-between gap-2 text-left active:opacity-90"
+        aria-expanded={expanded}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-200/70">
+            Body composition
+          </p>
+          {!expanded && (
+            <p className="mt-1 text-xs text-blue-200/60">
+              {hasAnyValue ? summary : "No metrics saved — tap to add"}
+            </p>
+          )}
+        </div>
+        <span className="shrink-0 pt-0.5 text-sm text-blue-200/50">{expanded ? "▲" : "▼"}</span>
+      </button>
 
-      {!editing && !hasAnyValue ? (
-        <p className="mt-2 text-xs text-blue-200/40">No metrics saved — tap Edit to add.</p>
-      ) : (
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          {METRIC_FIELDS.map((field) => (
-            <div key={field.key}>
-              <label className="block text-[10px] text-blue-200/60">{field.label}</label>
-              {editing ? (
-                <div className="mt-1 flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={metrics[field.key]}
-                    onChange={(e) => updateField(field.key, e.target.value)}
-                    placeholder={field.placeholder}
-                    className={INPUT_CLASS}
-                  />
-                  {field.unit && (
-                    <span className="shrink-0 text-xs text-blue-200/50">{field.unit}</span>
+      {expanded && (
+        <div className="mt-2">
+          <div className="mb-2 flex justify-end">
+            {editing ? (
+              <button
+                type="button"
+                onClick={handleSave}
+                className="touch-manipulation min-h-[36px] rounded-lg bg-mdc-blue px-3 py-1.5 text-xs font-semibold text-white active:opacity-90"
+              >
+                Save
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleEdit}
+                className="touch-manipulation min-h-[36px] rounded-lg border border-mdc-blue/30 px-3 py-1.5 text-xs font-semibold text-blue-200 active:bg-mdc-blue/10"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+
+          {!editing && !hasAnyValue ? (
+            <p className="text-xs text-blue-200/40">No metrics saved — tap Edit to add.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {METRIC_FIELDS.map((field) => (
+                <div key={field.key}>
+                  <label className="block text-[10px] text-blue-200/60">{field.label}</label>
+                  {editing ? (
+                    <div className="mt-1 flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={metrics[field.key]}
+                        onChange={(e) => updateField(field.key, e.target.value)}
+                        placeholder={field.placeholder}
+                        className={INPUT_CLASS}
+                      />
+                      {field.unit && (
+                        <span className="shrink-0 text-xs text-blue-200/50">{field.unit}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <p className="text-sm font-medium tabular-nums text-white/90">
+                        {metrics[field.key].trim() ? (
+                          <>
+                            {metrics[field.key]}
+                            {field.unit && <span className="ml-0.5 text-xs text-blue-200/50">{field.unit}</span>}
+                          </>
+                        ) : (
+                          <span className="text-white/30">—</span>
+                        )}
+                      </p>
+                      {previous && metrics[field.key].trim() && previous.metrics[field.key].trim() && (
+                        <p className="mt-0.5 text-[10px] text-blue-200/50">
+                          vs {shortDateLabel(previous.dateIso)}:{" "}
+                          {formatMetricDelta(metrics[field.key], previous.metrics[field.key], field.unit) ??
+                            "—"}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className="mt-1">
-                  <p className="text-sm font-medium tabular-nums text-white/90">
-                    {metrics[field.key].trim() ? (
-                      <>
-                        {metrics[field.key]}
-                        {field.unit && <span className="ml-0.5 text-xs text-blue-200/50">{field.unit}</span>}
-                      </>
-                    ) : (
-                      <span className="text-white/30">—</span>
-                    )}
-                  </p>
-                  {previous && metrics[field.key].trim() && previous.metrics[field.key].trim() && (
-                    <p className="mt-0.5 text-[10px] text-blue-200/50">
-                      vs {shortDateLabel(previous.dateIso)}:{" "}
-                      {formatMetricDelta(metrics[field.key], previous.metrics[field.key], field.unit) ??
-                        "—"}
-                    </p>
-                  )}
-                </div>
-              )}
+              ))}
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

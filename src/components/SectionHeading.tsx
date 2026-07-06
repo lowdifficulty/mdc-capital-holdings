@@ -18,7 +18,7 @@ export default function SectionHeading({
   headlineSingleLine = false,
 }: SectionHeadingProps) {
   const alignment = align === "center" ? "mx-auto text-center" : "text-left";
-  const containerWidth = headlineSingleLine ? "max-w-6xl" : "max-w-3xl";
+  const containerWidth = headlineSingleLine ? "w-full max-w-6xl" : "max-w-3xl";
   const eyebrowClass = luxury ? "text-[#c9a227]" : "text-mdc-blue";
   const headlineClass = luxury
     ? "text-[#f8f4ec]"
@@ -39,7 +39,11 @@ export default function SectionHeading({
         </p>
       )}
       <h2
-        className={`font-serif leading-tight tracking-tight ${headlineSingleLine ? "whitespace-nowrap text-[clamp(1.35rem,2.5vw+0.85rem,3rem)]" : "text-3xl md:text-5xl"} ${headlineClass}`}
+        className={`font-serif leading-tight tracking-tight ${
+          headlineSingleLine
+            ? "text-3xl md:text-4xl lg:text-5xl lg:whitespace-nowrap"
+            : "text-3xl md:text-5xl"
+        } ${headlineClass}`}
       >
         {headline}
       </h2>

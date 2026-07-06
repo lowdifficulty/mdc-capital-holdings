@@ -19,7 +19,7 @@ export default function HomePage() {
 
       <section className="border-t border-[#c9a227]/10 py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex flex-col items-center gap-12">
+          <div className="flex w-full min-w-0 flex-col items-center gap-12">
             <SectionHeading
               align="center"
               headlineSingleLine
@@ -33,7 +33,7 @@ We look for companies with real customer demand, strong service models, operatio
             <SectionPhoto
               src={siteImages.operations}
               alt="Black and gold miniature house models with growing stacks of gold coins on marble, representing long-term capital and durable growth"
-              className="w-full max-w-5xl opacity-90 ring-1 ring-[#c9a227]/15"
+              className="w-full min-w-0 max-w-5xl opacity-90 ring-1 ring-[#c9a227]/15"
               sizes="(max-width: 1024px) 100vw, 1024px"
               luxury
               fit="contain"

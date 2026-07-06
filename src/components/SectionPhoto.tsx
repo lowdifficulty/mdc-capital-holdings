@@ -37,7 +37,7 @@ export default function SectionPhoto({
 
   if (useContain && width && height) {
     return (
-      <div className={`${shellClass} ${className}`}>
+      <div className={`${shellClass} max-w-full ${className}`}>
         <Image
           src={src}
           alt={alt}
@@ -45,7 +45,7 @@ export default function SectionPhoto({
           height={height}
           priority={priority}
           sizes={sizes}
-          className="block h-auto w-full"
+          className="block h-auto w-full max-w-full"
         />
         <div className={overlayClass} />
       </div>
