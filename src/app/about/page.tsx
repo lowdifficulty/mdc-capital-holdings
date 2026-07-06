@@ -15,21 +15,29 @@ export default function AboutPage() {
     <>
       <Hero
         compact
+        luxury
         headline="Operators first. Capital second."
         body="MDC Capital Holdings was created to build, acquire, and operate businesses with a long-term mindset. We believe many small businesses do not fail because the market is too small. They fail because the systems around the business are not strong enough yet."
       />
 
-      <section className="py-24 md:py-32">
+      <section className="border-t border-[#c9a227]/10 py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-            <SectionHeading headline="Built for operators, founders, and owners who think long term." />
+            <SectionHeading
+              luxury
+              headline="Built for operators, founders, and owners who think long term."
+            />
             <div className="space-y-8">
               <SectionPhoto
                 src={siteImages.operations}
                 alt="Leadership team planning long-term business growth"
                 className="aspect-[16/10]"
+                luxury
+                fit="contain"
+                width={1024}
+                height={410}
               />
-              <p className="text-base leading-relaxed text-slate md:text-lg">
+              <p className="text-base leading-relaxed text-[#eae6dc]/65 md:text-lg">
                 MDC brings together business building, digital marketing, technology,
                 finance, and hands-on operating experience. Our role is to help companies
                 become more durable, more scalable, and more valuable without losing the
@@ -40,9 +48,10 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="bg-light-gray py-24 md:py-32">
+      <section className="border-t border-[#c9a227]/10 bg-[#0a0a0a] py-24 md:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <SectionHeading
+            luxury
             eyebrow="Principles"
             headline="How we approach ownership and operating support."
           />
@@ -50,19 +59,21 @@ export default function AboutPage() {
             {principles.map((principle) => (
               <article
                 key={principle.title}
-                className="rounded-2xl border border-navy/8 bg-white p-8 transition-all duration-300 hover:-translate-y-1 hover:border-mdc-blue/25 hover:shadow-lg"
+                className="rounded-sm border border-[#c9a227]/15 bg-[#111] p-8 transition-all duration-300 hover:-translate-y-1 hover:border-[#c9a227]/35 hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)]"
               >
-                <h3 className="font-serif text-xl text-navy">{principle.title}</h3>
-                <p className="mt-4 text-sm leading-relaxed text-slate">{principle.body}</p>
+                <h3 className="font-serif text-xl text-[#f8f4ec]">{principle.title}</h3>
+                <p className="mt-4 text-sm leading-relaxed text-[#eae6dc]/65">
+                  {principle.body}
+                </p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-24 md:py-32">
+      <section className="border-t border-[#c9a227]/10 py-24 md:py-32">
         <div className="mx-auto max-w-4xl px-6 text-center lg:px-8">
-          <p className="font-serif text-2xl leading-relaxed text-navy md:text-3xl">
+          <p className="font-serif text-2xl leading-relaxed text-[#f8f4ec] md:text-3xl">
             MDC Capital Holdings is an operating holdings company that builds, acquires,
             and grows small businesses and digital platforms with a long-term ownership
             mindset.

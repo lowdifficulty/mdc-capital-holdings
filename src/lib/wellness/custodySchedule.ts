@@ -27,10 +27,10 @@ export function isCustodyDay(dateIso: string): boolean {
 
 export function custodyLabel(dateIso: string): string | null {
   if (!isCustodyDay(dateIso)) return null;
-  return `${CUSTODY_CHILDREN.join(" & ")} — custody week`;
+  return "David and Charles";
 }
 
 export function custodyShortLabel(dateIso: string): string | null {
   if (!isCustodyDay(dateIso)) return null;
-  return "Kids week";
+  return "David and Charles";
 }

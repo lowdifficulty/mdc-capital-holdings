@@ -14,10 +14,10 @@ export default function SituationsSection({ luxury = false }: { luxury?: boolean
     >
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="max-w-3xl">
-          <h2 className="font-serif text-3xl tracking-tight text-white md:text-5xl">
+          <h2 className="font-serif text-3xl tracking-tight text-[#f8f4ec] md:text-5xl">
             We partner with businesses at pivotal moments.
           </h2>
-          <p className="mt-6 text-base leading-relaxed text-white/75 md:text-lg">
+          <p className="mt-6 text-base leading-relaxed text-[#eae6dc]/75 md:text-lg">
             Select your situation to see how MDC can support your next stage of
             growth, transition, or building.
           </p>

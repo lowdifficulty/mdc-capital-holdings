@@ -1,9 +1,12 @@
-/** Peptide program — Test + Reta Jul 5; MT2 Jul 8; GHK-Cu Jul 14. */
+/** Peptide program — Test + Reta Jul 5; MT2 Jul 8; GHK-Cu Jul 14; HGH Jul 5 (titrating). */
+
+import { isProgramDay } from "@/lib/wellness/programStart";
 
 export const TEST_START = "2026-07-05";
 export const RETATRUTIDE_START = "2026-07-05";
 export const GHK_START = "2026-07-14";
 export const MELANOTAN_START = "2026-07-08";
+export const HGH_START = "2026-07-05";
 
 /** @deprecated Use TEST_START */
 export const TEST_RETATRUTIDE_START = TEST_START;
@@ -124,7 +127,12 @@ function melanotanDose(
   return { dose: 0, phase: "Program complete", active: false };
 }
 
-import { isProgramDay } from "@/lib/wellness/programStart";
+/** Week 1: 1 IU · week 2: 2 IU · week 3+: 4 IU (daily). */
+function hghDoseIu(dayIndex: number): { iu: number; phase: string } {
+  if (dayIndex < 7) return { iu: 1, phase: "Week 1 (1 IU daily)" };
+  if (dayIndex < 14) return { iu: 2, phase: "Week 2 (2 IU daily)" };
+  return { iu: 4, phase: "Week 3+ (4 IU daily)" };
+}
 
 export function generateDosesForDate(dateIso: string): ScheduledDose[] {
   if (!isProgramDay(dateIso)) return [];
@@ -134,6 +142,7 @@ export function generateDosesForDate(dateIso: string): ScheduledDose[] {
   const retaStart = parseDate(RETATRUTIDE_START);
   const ghkStart = parseDate(GHK_START);
   const mtStart = parseDate(MELANOTAN_START);
+  const hghStart = parseDate(HGH_START);
   const retaMgPerMl = 10 / BAC_ML;
   const ghkMgPerMl = 100 / BAC_ML;
   const mtMgPerMl = 10 / BAC_ML;
@@ -193,6 +202,19 @@ export function generateDosesForDate(dateIso: string): ScheduledDose[] {
     });
   }
 
+  if (date >= hghStart) {
+    const hghIndex = daysBetween(hghStart, date);
+    const hgh = hghDoseIu(hghIndex);
+    doses.push({
+      id: `${dateIso}-hgh`,
+      date: dateIso,
+      compound: "HGH",
+      doseLabel: `${hgh.iu} IU SC`,
+      phase: hgh.phase,
+      notes: "Daily — subcutaneous",
+    });
+  }
+
   return doses;
 }
 
@@ -211,6 +233,7 @@ export function doseAbbreviation(compound: string): string {
   if (compound.includes("Retatrutide")) return "Reta";
   if (compound.includes("GHK")) return "GHK";
   if (compound.includes("Melanotan")) return "MT2";
+  if (compound === "HGH") return "HGH";
   return compound.split(" ")[0] ?? compound;
 }
 

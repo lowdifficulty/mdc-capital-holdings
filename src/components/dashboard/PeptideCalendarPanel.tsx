@@ -718,7 +718,7 @@ function DayDetailModal({
         ) : (
           <>
         {custody && (
-          <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5 text-sm text-sky-100">
+          <div className="mb-4 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5 text-sm text-sky-100">
             {custody}
           </div>
         )}

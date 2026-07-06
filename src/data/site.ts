@@ -15,14 +15,11 @@ export interface PortfolioCompany {
 }
 
 export const siteImages = {
-  healthcare:
-    "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1400&q=80&auto=format&fit=crop",
+  healthcare: "/images/healthcare.jpg",
   digitalHealth:
     "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1400&q=80&auto=format&fit=crop",
-  homeServices:
-    "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=1400&q=80&auto=format&fit=crop",
-  startupTech:
-    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1400&q=80&auto=format&fit=crop",
+  homeServices: "/images/home-services.jpg",
+  startupTech: "/images/startup-tech.jpg",
   operations: "/images/long-term-outlook.png",
   localService:
     "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1400&q=80&auto=format&fit=crop",
@@ -35,7 +32,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     website: "https://smbhealthsupply.com/",
     logoSrc: "/portfolio/smb-health-supply.png",
     imageSrc: "/portfolio/smb-health-hero.jpg",
-    imageAlt: "SMB Health Supply advanced wound care products",
+    imageAlt: "Surgical team preparing in a gold-lit operating room",
     category: "Healthcare Distribution",
     industry: "Healthcare Distribution / Advanced Wound Care",
     shortDescription:
@@ -60,7 +57,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     website: "https://rx.center/",
     logoSrc: "/portfolio/rx-center.png",
     imageSrc: "/portfolio/rx-center-hero.png",
-    imageAlt: "RX Center online healthcare and wellness care",
+    imageAlt: "RX Center digital health — licensed provider-led care",
     category: "Digital Health",
     industry: "Digital Health / Online Care",
     shortDescription:
@@ -87,7 +84,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     website: "https://lowdif.com/",
     logoSrc: "/portfolio/lowdif.svg",
     imageSrc: siteImages.startupTech,
-    imageAlt: "Startup technology team collaborating",
+    imageAlt: "Technology team collaborating in a gold-lit workspace",
     category: "Music Technology",
     industry: "Music Technology / Web3 / Streaming",
     shortDescription:
@@ -113,7 +110,7 @@ export const portfolioCompanies: PortfolioCompany[] = [
     website: "https://mobiledog-salon.com/",
     logoSrc: "/portfolio/mobile-dog-salon.png",
     imageSrc: "/portfolio/mobile-dog-salon-hero.jpg",
-    imageAlt: "Mobile Dog Salon groomers providing curbside pet grooming",
+    imageAlt: "Mobile Dog Salon — professional curbside pet grooming",
     category: "Mobile Pet Services",
     industry: "Local Services / Mobile Pet Grooming",
     shortDescription:
@@ -205,39 +202,6 @@ export const operatingCapabilities = [
   {
     title: "Finance & Reporting",
     body: "We help operators understand unit economics, cash flow, margins, customer acquisition cost, lifetime value, and growth priorities.",
-  },
-];
-
-export const investmentThemes = [
-  {
-    title: "Healthcare Services & Distribution",
-    body: "We look for healthcare businesses with real provider or patient demand, recurring operational needs, and opportunities to improve access, fulfillment, communication, and compliance-aware growth.",
-    imageSrc: siteImages.healthcare,
-    imageAlt: "Healthcare services and medical distribution",
-  },
-  {
-    title: "Local Services",
-    body: "Local service businesses can become highly valuable when they have strong customer demand, repeatable operations, reliable staffing, and modern customer acquisition systems.",
-    imageSrc: siteImages.localService,
-    imageAlt: "Local home and mobile service business",
-  },
-  {
-    title: "Digital Health",
-    body: "We are interested in healthcare experiences that make care easier to access, easier to understand, and easier to manage through technology and licensed-provider-led models.",
-    imageSrc: siteImages.digitalHealth,
-    imageAlt: "Digital health and online patient care",
-  },
-  {
-    title: "Music, Media & Technology",
-    body: "MDC supports digital platforms that rethink how creators, customers, and communities exchange value.",
-    imageSrc: siteImages.startupTech,
-    imageAlt: "Startup technology and creator platforms",
-  },
-  {
-    title: "AI-Enabled Operations",
-    body: "We believe small businesses can benefit from AI and automation when it is applied practically: faster follow-up, cleaner workflows, better reporting, smarter routing, and improved customer experience.",
-    imageSrc: siteImages.operations,
-    imageAlt: "Technology-enabled business operations",
   },
 ];
 

@@ -1,4 +1,3 @@
-import HomePageShell from "@/components/home/HomePageShell";
 import WayneHero from "@/components/home/WayneHero";
 import SectionHeading from "@/components/SectionHeading";
 import PortfolioCard from "@/components/PortfolioCard";
@@ -15,7 +14,7 @@ import SectionPhoto from "@/components/SectionPhoto";
 
 export default function HomePage() {
   return (
-    <HomePageShell>
+    <>
       <WayneHero />
 
       <section className="border-t border-[#c9a227]/10 py-24 md:py-32">
@@ -33,9 +32,13 @@ We look for companies with real customer demand, strong service models, operatio
             />
             <SectionPhoto
               src={siteImages.operations}
-              alt="Wooden house models and growing stacks of coins representing long-term capital and durable growth"
-              className="aspect-[21/9] w-full max-w-5xl opacity-90 ring-1 ring-[#c9a227]/15"
+              alt="Black and gold miniature house models with growing stacks of gold coins on marble, representing long-term capital and durable growth"
+              className="w-full max-w-5xl opacity-90 ring-1 ring-[#c9a227]/15"
               sizes="(max-width: 1024px) 100vw, 1024px"
+              luxury
+              fit="contain"
+              width={1024}
+              height={410}
             />
           </div>
         </div>
@@ -75,13 +78,13 @@ We look for companies with real customer demand, strong service models, operatio
           />
           <div className="mt-14 grid gap-8 md:grid-cols-2">
             {portfolioCompanies.map((company) => (
-              <div key={company.id} className="home-wayne-portfolio-card">
-                <PortfolioCard
-                  company={company}
-                  variant="detailed"
-                  imageClassName="h-[27.5rem]"
-                />
-              </div>
+              <PortfolioCard
+                key={company.id}
+                company={company}
+                variant="detailed"
+                imageClassName="h-[27.5rem]"
+                luxury
+              />
             ))}
           </div>
         </div>
@@ -98,13 +101,13 @@ We look for companies with real customer demand, strong service models, operatio
           />
           <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {operatingCapabilities.map((capability, index) => (
-              <div key={capability.title} className="home-wayne-capability-card">
-                <OperatingCapabilityCard
-                  title={capability.title}
-                  body={capability.body}
-                  index={index}
-                />
-              </div>
+              <OperatingCapabilityCard
+                key={capability.title}
+                title={capability.title}
+                body={capability.body}
+                index={index}
+                luxury
+              />
             ))}
           </div>
         </div>
@@ -137,23 +140,26 @@ We look for companies with real customer demand, strong service models, operatio
             <div className="grid gap-6 sm:grid-cols-2">
               <SectionPhoto
                 src={siteImages.healthcare}
-                alt="Healthcare distribution and medical services"
+                alt="Surgical team overhead view in a gold-lit operating room"
                 className="aspect-square opacity-90 ring-1 ring-[#c9a227]/15 sm:col-span-2 sm:aspect-[21/9]"
+                luxury
               />
               <SectionPhoto
                 src={siteImages.homeServices}
-                alt="Home and local service businesses"
+                alt="Dog at night with city lights — local pet services"
                 className="aspect-square opacity-90 ring-1 ring-[#c9a227]/15"
+                luxury
               />
               <SectionPhoto
                 src={siteImages.startupTech}
-                alt="Startup technology and digital platforms"
+                alt="Technology team collaborating in a gold-lit workspace"
                 className="aspect-square opacity-90 ring-1 ring-[#c9a227]/15"
+                luxury
               />
             </div>
           </div>
         </div>
       </section>
-    </HomePageShell>
+    </>
   );
 }

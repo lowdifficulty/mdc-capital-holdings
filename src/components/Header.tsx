@@ -6,9 +6,8 @@ import { useEffect, useState } from "react";
 import { navLinks } from "@/data/site";
 import AuthNav, { AuthNavMobile } from "@/components/auth/AuthNav";
 
-export default function Header() {
+export default function Header({ luxury = false }: { luxury?: boolean }) {
   const pathname = usePathname();
-  const isHome = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -23,7 +22,7 @@ export default function Header() {
     setMenuOpen(false);
   }, [pathname]);
 
-  const shellClass = isHome
+  const shellClass = luxury
     ? scrolled
       ? "border-b border-[#c9a227]/20 bg-[#050505]/95 shadow-lg shadow-black/40 backdrop-blur-md"
       : "bg-transparent"
@@ -37,7 +36,7 @@ export default function Header() {
         <Link href="/" className="group flex items-center gap-3">
           <span
             className={`flex h-9 w-9 items-center justify-center text-sm font-bold transition-transform group-hover:scale-105 ${
-              isHome
+              luxury
                 ? "rounded-sm bg-[#c9a227] text-[#050505]"
                 : "rounded-md bg-mdc-blue text-white"
             }`}
@@ -46,7 +45,7 @@ export default function Header() {
           </span>
           <span
             className={`hidden font-serif text-lg tracking-tight sm:block ${
-              isHome ? "text-[#f8f4ec]" : "text-white"
+              luxury ? "text-[#f8f4ec]" : "text-white"
             }`}
           >
             MDC Capital Holdings
@@ -61,7 +60,7 @@ export default function Header() {
                 key={link.href}
                 href={link.href}
                 className={`text-sm font-medium uppercase tracking-wide transition-colors ${
-                  isHome
+                  luxury
                     ? active
                       ? "text-[#c9a227]"
                       : "text-[#eae6dc]/65 hover:text-[#c9a227]"
@@ -77,14 +76,14 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-4">
-          <AuthNav luxury={isHome} />
+          <AuthNav luxury={luxury} />
           <button
             type="button"
             aria-label="Toggle menu"
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((open) => !open)}
             className={`inline-flex h-10 w-10 items-center justify-center lg:hidden ${
-              isHome
+              luxury
                 ? "rounded-sm border border-[#c9a227]/30 text-[#eae6dc]"
                 : "rounded-md border border-white/20 text-white"
             }`}
@@ -110,9 +109,7 @@ export default function Header() {
       {menuOpen && (
         <div
           className={`border-t px-6 py-6 lg:hidden ${
-            isHome
-              ? "border-[#c9a227]/15 bg-[#050505]"
-              : "border-white/10 bg-navy"
+            luxury ? "border-[#c9a227]/15 bg-[#050505]" : "border-white/10 bg-navy"
           }`}
         >
           <nav className="flex flex-col gap-4">
@@ -123,7 +120,7 @@ export default function Header() {
                   key={link.href}
                   href={link.href}
                   className={`text-base font-medium uppercase tracking-wide ${
-                    isHome
+                    luxury
                       ? active
                         ? "text-[#c9a227]"
                         : "text-[#eae6dc]/80 hover:text-[#c9a227]"
@@ -134,7 +131,7 @@ export default function Header() {
                 </Link>
               );
             })}
-            <AuthNavMobile luxury={isHome} onNavigate={() => setMenuOpen(false)} />
+            <AuthNavMobile luxury={luxury} onNavigate={() => setMenuOpen(false)} />
           </nav>
         </div>
       )}
