@@ -20,6 +20,7 @@ let hydrateInFlight: Promise<boolean> | null = null;
 let syncState: SyncState = "idle";
 let syncError: string | null = null;
 let schedulerRegistered = false;
+let lifecycleRegistered = false;
 
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -90,6 +91,14 @@ function touchLocalUpdatedAt(): void {
   writeMeta({ ...meta, updatedAt });
 }
 
+function buildPushPayload(): WellnessData {
+  const local = collectWellnessFromLocalStorage();
+  return {
+    ...local,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
 async function pushWellnessToServer(): Promise<void> {
   if (typeof window === "undefined") return;
   if (pushInFlight) return pushInFlight;
@@ -98,11 +107,7 @@ async function pushWellnessToServer(): Promise<void> {
     syncState = "pushing";
     syncError = null;
     try {
-      const local = collectWellnessFromLocalStorage();
-      const payload: WellnessData = {
-        ...local,
-        updatedAt: new Date().toISOString(),
-      };
+      const payload = buildPushPayload();
       const res = await fetch("/api/wellness", {
         method: "PUT",
         credentials: "same-origin",
@@ -111,7 +116,8 @@ async function pushWellnessToServer(): Promise<void> {
       });
       if (res.status === 401) return;
       if (!res.ok) {
-        throw new Error("Failed to sync wellness data");
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Failed to sync wellness data");
       }
       const body = (await res.json()) as { data: WellnessData };
       applyWellnessToLocalStorage(body.data);
@@ -132,6 +138,15 @@ async function pushWellnessToServer(): Promise<void> {
   return pushInFlight;
 }
 
+export function flushWellnessPush(): void {
+  if (typeof window === "undefined") return;
+  if (pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+  }
+  void pushWellnessToServer();
+}
+
 export function scheduleWellnessPush(): void {
   if (typeof window === "undefined") return;
   touchLocalUpdatedAt();
@@ -139,7 +154,38 @@ export function scheduleWellnessPush(): void {
   pushTimer = setTimeout(() => {
     pushTimer = null;
     void pushWellnessToServer();
-  }, 800);
+  }, 500);
+}
+
+function pushWellnessKeepalive(): void {
+  if (typeof window === "undefined") return;
+  const payload = buildPushPayload();
+  void fetch("/api/wellness", {
+    method: "PUT",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data: payload }),
+    keepalive: true,
+  });
+}
+
+function registerWellnessLifecycleHandlers(): void {
+  if (lifecycleRegistered || typeof window === "undefined") return;
+  lifecycleRegistered = true;
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      flushWellnessPush();
+      return;
+    }
+    if (document.visibilityState === "visible") {
+      void hydrateWellnessFromServer();
+    }
+  });
+
+  window.addEventListener("pagehide", () => {
+    pushWellnessKeepalive();
+  });
 }
 
 export async function hydrateWellnessFromServer(): Promise<boolean> {
@@ -202,7 +248,8 @@ export async function hydrateWellnessFromServer(): Promise<boolean> {
 
 export function initWellnessClientSync(): void {
   if (schedulerRegistered || typeof window === "undefined") return;
-  registerWellnessSyncScheduler(scheduleWellnessPush);
+  registerWellnessSyncScheduler(scheduleWellnessPush, flushWellnessPush);
+  registerWellnessLifecycleHandlers();
   schedulerRegistered = true;
 }
 

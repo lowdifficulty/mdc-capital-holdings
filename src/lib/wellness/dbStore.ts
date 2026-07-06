@@ -55,7 +55,7 @@ export async function readWellnessDb(userKey: string): Promise<WellnessData | nu
 
 export async function writeWellnessDb(userKey: string, data: WellnessData): Promise<void> {
   const db = await getPool();
-  if (!db) return;
+  if (!db) throw new Error("Database pool unavailable");
   await ensureSchema();
   await db.query(
     `

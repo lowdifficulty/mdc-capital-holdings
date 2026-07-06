@@ -1,4 +1,4 @@
-import { markWellnessDirty } from "@/lib/wellness/syncNotify";
+import { markWellnessDirty, markWellnessSaved } from "@/lib/wellness/syncNotify";
 
 const JOURNAL_KEY = "mdc-day-journals";
 
@@ -59,9 +59,10 @@ function readAll(): Record<string, DayJournal> {
   }
 }
 
-function writeAll(data: Record<string, DayJournal>): void {
+function writeAll(data: Record<string, DayJournal>, sync: "debounced" | "immediate" = "debounced"): void {
   localStorage.setItem(JOURNAL_KEY, JSON.stringify(data));
-  markWellnessDirty();
+  if (sync === "immediate") markWellnessSaved();
+  else markWellnessDirty();
 }
 
 function ensure(data: Record<string, DayJournal>, dateIso: string): DayJournal {
@@ -119,7 +120,7 @@ export function saveDayNote(dateIso: string, note: string): DayJournal {
   journal.note = note;
   journal.noteLocked = true;
   all[dateIso] = journal;
-  writeAll(all);
+  writeAll(all, "immediate");
   return { ...journal };
 }
 
@@ -133,7 +134,7 @@ export function saveDaySectionPlanNote(
   if (!journal.planNotes) journal.planNotes = {};
   journal.planNotes[section] = text;
   all[dateIso] = journal;
-  writeAll(all);
+  writeAll(all, "immediate");
   return { ...journal, planNotes: { ...journal.planNotes } };
 }
 

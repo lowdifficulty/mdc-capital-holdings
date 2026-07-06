@@ -24,7 +24,18 @@ export function useWellnessSync() {
       setRefreshToken((token) => token + 1);
     });
 
-    return unsub;
+    const onFocus = () => {
+      void hydrateWellnessFromServer().then(() => {
+        setSyncState(getWellnessSyncState());
+        setRefreshToken((token) => token + 1);
+      });
+    };
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      unsub();
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   return { refreshToken, syncState: state, syncError: error };

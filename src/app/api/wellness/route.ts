@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/session";
-import { getWellnessForUser, getWellnessStorageMode, saveWellnessForUser } from "@/lib/wellness/serverStore";
+import {
+  getWellnessForUser,
+  getWellnessStorageMode,
+  isWellnessStorageDurable,
+  saveWellnessForUser,
+} from "@/lib/wellness/serverStore";
 import { emptyWellnessData, type WellnessData } from "@/lib/wellness/types";
 
 function isWellnessData(value: unknown): value is WellnessData {
@@ -26,6 +31,7 @@ export async function GET() {
     return NextResponse.json({
       data,
       storage: getWellnessStorageMode(),
+      durable: isWellnessStorageDurable(),
     });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,8 +39,14 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  let user;
   try {
-    const user = await requireUser();
+    user = await requireUser();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
     const body = (await request.json()) as { data?: unknown };
     if (!isWellnessData(body.data)) {
       return NextResponse.json({ error: "Invalid wellness payload" }, { status: 400 });
@@ -50,8 +62,13 @@ export async function PUT(request: Request) {
     return NextResponse.json({
       data: saved,
       storage: getWellnessStorageMode(),
+      durable: isWellnessStorageDurable(),
     });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch (err) {
+    console.error("wellness save failed", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to save wellness data" },
+      { status: 500 }
+    );
   }
 }

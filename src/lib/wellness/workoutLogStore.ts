@@ -1,4 +1,4 @@
-import { markWellnessDirty } from "@/lib/wellness/syncNotify";
+import { markWellnessDirty, markWellnessSaved } from "@/lib/wellness/syncNotify";
 
 const WORKOUT_LOG_KEY = "mdc-workout-exercise-logs";
 
@@ -41,9 +41,10 @@ function readAll(): LogStore {
   }
 }
 
-function writeAll(data: LogStore): void {
+function writeAll(data: LogStore, sync: "debounced" | "immediate" = "debounced"): void {
   localStorage.setItem(WORKOUT_LOG_KEY, JSON.stringify(data));
-  markWellnessDirty();
+  if (sync === "immediate") markWellnessSaved();
+  else markWellnessDirty();
 }
 
 export function getExerciseLog(dateIso: string, exerciseId: string): ExerciseLog {
@@ -63,7 +64,8 @@ export function getExerciseLogsForDay(dateIso: string, exerciseIds: string[]): R
 export function saveExerciseLog(
   dateIso: string,
   exerciseId: string,
-  patch: Partial<ExerciseLog>
+  patch: Partial<ExerciseLog>,
+  options?: { immediate?: boolean }
 ): ExerciseLog {
   const all = readAll();
   const key = logKey(dateIso, exerciseId);
@@ -74,7 +76,7 @@ export function saveExerciseLog(
     setWeights: merged.setWeights,
   });
   all[key] = next;
-  writeAll(all);
+  writeAll(all, options?.immediate ? "immediate" : "debounced");
   return next;
 }
 
@@ -113,7 +115,7 @@ export function getRecommendedSets(exerciseId: string, beforeDateIso: string): s
 
 export function toggleExerciseDone(dateIso: string, exerciseId: string): ExerciseLog {
   const current = getExerciseLog(dateIso, exerciseId);
-  return saveExerciseLog(dateIso, exerciseId, { done: !current.done });
+  return saveExerciseLog(dateIso, exerciseId, { done: !current.done }, { immediate: true });
 }
 
 const DAILY_METRICS_KEY = "mdc-daily-body-metrics";
@@ -152,9 +154,10 @@ function readMetrics(): MetricsStore {
   }
 }
 
-function writeMetrics(data: MetricsStore): void {
+function writeMetrics(data: MetricsStore, sync: "debounced" | "immediate" = "debounced"): void {
   localStorage.setItem(DAILY_METRICS_KEY, JSON.stringify(data));
-  markWellnessDirty();
+  if (sync === "immediate") markWellnessSaved();
+  else markWellnessDirty();
 }
 
 function readLegacyWeights(): Record<string, string> {
@@ -183,7 +186,7 @@ export function saveDailyBodyMetrics(dateIso: string, metrics: DailyBodyMetrics)
   const all = readMetrics();
   const next = { ...emptyBodyMetrics(), ...metrics, locked: true };
   all[dateIso] = next;
-  writeMetrics(all);
+  writeMetrics(all, "immediate");
   return next;
 }
 
