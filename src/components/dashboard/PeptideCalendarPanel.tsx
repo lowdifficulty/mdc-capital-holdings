@@ -1,9 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  GHK_START,
-  MELANOTAN_START,
   SYRINGE_REFERENCE,
   dayDoseSummary,
   generateDosesForDate,
@@ -24,9 +22,13 @@ import {
   getDayJournal,
   kickDayTodo,
   removeDayTodo,
+  reorderDayTodos,
   saveDayNote,
+  saveDaySectionPlanNote,
   toggleDayTodo,
   type DayJournal,
+  type DayTodo,
+  type PlanNoteSectionId,
 } from "@/lib/wellness/dayJournalStore";
 import {
   WORKOUT_CELL_TEXT,
@@ -34,6 +36,13 @@ import {
   type WorkoutDay,
 } from "@/lib/wellness/workoutSchedule";
 import { isProgramDay, PROGRAM_START } from "@/lib/wellness/programStart";
+import {
+  getDaySectionOrder,
+  reorderDaySections,
+  saveDaySectionOrder,
+  visibleDaySectionOrder,
+  type DaySectionId,
+} from "@/lib/wellness/daySectionOrderStore";
 import WorkoutRoutineSection from "@/components/dashboard/WorkoutRoutineSection";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
@@ -73,6 +82,216 @@ function monthGrid(year: number, month: number): (string | null)[] {
   return cells;
 }
 
+function DaySectionDropdown({
+  title,
+  open,
+  onToggle,
+  done = false,
+  planNote,
+  onPlanNoteChange,
+  onPlanNoteBlur,
+  sectionId,
+  draggable = false,
+  isDragging = false,
+  isDragOver = false,
+  onDragHandleStart,
+  onDragHandleEnd,
+  onSectionDragOver,
+  onSectionDrop,
+  children,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+  done?: boolean;
+  planNote?: string;
+  onPlanNoteChange?: (value: string) => void;
+  onPlanNoteBlur?: () => void;
+  sectionId?: DaySectionId;
+  draggable?: boolean;
+  isDragging?: boolean;
+  isDragOver?: boolean;
+  onDragHandleStart?: (id: DaySectionId) => void;
+  onDragHandleEnd?: () => void;
+  onSectionDragOver?: (id: DaySectionId) => void;
+  onSectionDrop?: (id: DaySectionId) => void;
+  children: ReactNode;
+}) {
+  const shell = done
+    ? "border-emerald-500/35 bg-emerald-500/10"
+    : "border-mdc-blue/30 bg-mdc-blue/5";
+  const titleColor = done ? "text-emerald-200" : "text-blue-200";
+  const divider = done ? "border-emerald-500/20" : "border-mdc-blue/20";
+  const chevron = done ? "text-emerald-300/50" : "text-blue-200/40";
+  const noteBorder = done ? "border-emerald-500/35" : "border-mdc-blue/30";
+  const noteFocus = done
+    ? "focus:border-emerald-500/35 focus:ring-emerald-500/15"
+    : "focus:border-mdc-blue/30 focus:ring-mdc-blue/15";
+
+  return (
+    <div
+      className={`rounded-xl border transition-colors ${shell} ${isDragging ? "opacity-50" : ""} ${isDragOver ? "ring-2 ring-mdc-blue/40" : ""}`}
+      onDragOver={
+        draggable && sectionId
+          ? (e) => {
+              e.preventDefault();
+              onSectionDragOver?.(sectionId);
+            }
+          : undefined
+      }
+      onDrop={
+        draggable && sectionId
+          ? (e) => {
+              e.preventDefault();
+              onSectionDrop?.(sectionId);
+            }
+          : undefined
+      }
+    >
+      <div className="flex items-stretch">
+        {draggable && sectionId && (
+          <button
+            type="button"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", sectionId);
+              onDragHandleStart?.(sectionId);
+            }}
+            onDragEnd={onDragHandleEnd}
+            className="touch-manipulation flex w-9 shrink-0 cursor-grab items-center justify-center border-r border-white/10 text-white/35 active:cursor-grabbing active:bg-white/5"
+            aria-label={`Drag to reorder ${title}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-sm leading-none tracking-tighter">⋮⋮</span>
+          </button>
+        )}
+        <div className="flex min-h-[52px] min-w-0 flex-1 items-center gap-2 px-3 py-3 sm:min-h-0 sm:px-4 sm:py-2.5">
+          <div className="min-w-0 flex-1">
+            <div className="grid grid-cols-2 items-center gap-x-2">
+              <span className={`min-w-0 truncate text-sm uppercase tracking-wide sm:text-base ${titleColor}`}>
+                {title}
+                {done && <span className="ml-1 normal-case tracking-normal text-emerald-300">✓</span>}
+              </span>
+              {onPlanNoteChange && (
+                <input
+                  type="text"
+                  value={planNote ?? ""}
+                  onChange={(e) => onPlanNoteChange(e.target.value)}
+                  onBlur={onPlanNoteBlur}
+                  onClick={(e) => e.stopPropagation()}
+                  className={`w-full rounded-md border bg-transparent px-2 py-1 text-xs text-white outline-none focus:ring-1 sm:text-sm ${noteBorder} ${noteFocus}`}
+                />
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            className="touch-manipulation shrink-0 rounded-md p-1.5 text-sm transition active:bg-white/10"
+          >
+            <span className={chevron}>{open ? "▲" : "▼"}</span>
+          </button>
+        </div>
+      </div>
+      {open && (
+        <div className={`border-t ${divider} px-3 pb-3 pt-2 sm:px-4`}>{children}</div>
+      )}
+    </div>
+  );
+}
+
+function DayTodoList({
+  iso,
+  todos,
+  onUpdate,
+}: {
+  iso: string;
+  todos: DayTodo[];
+  onUpdate: (journal: DayJournal) => void;
+}) {
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  function handleDrop(targetId: string) {
+    if (!dragId || dragId === targetId) return;
+    onUpdate(reorderDayTodos(iso, dragId, targetId));
+    setDragId(null);
+    setOverId(null);
+  }
+
+  return (
+    <ul className="mt-2 space-y-2">
+      {todos.map((todo) => (
+        <li
+          key={todo.id}
+          onDragOver={(e) => {
+            e.preventDefault();
+            if (dragId && dragId !== todo.id) setOverId(todo.id);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            handleDrop(todo.id);
+          }}
+          className={`flex flex-col gap-2 rounded-xl border border-white/10 bg-black/20 p-3 transition sm:flex-row sm:items-start sm:gap-2 sm:p-2.5 ${
+            dragId === todo.id ? "opacity-50" : ""
+          } ${overId === todo.id ? "ring-2 ring-violet-500/40" : ""}`}
+        >
+          <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
+            <button
+              type="button"
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", todo.id);
+                setDragId(todo.id);
+              }}
+              onDragEnd={() => {
+                setDragId(null);
+                setOverId(null);
+              }}
+              className="touch-manipulation mt-0.5 flex h-8 w-6 shrink-0 cursor-grab items-center justify-center text-white/30 active:cursor-grabbing active:text-white/50"
+              aria-label={`Drag to reorder: ${todo.text}`}
+            >
+              <span className="text-sm leading-none tracking-tighter">⋮⋮</span>
+            </button>
+            <input
+              type="checkbox"
+              checked={todo.done}
+              onChange={() => onUpdate(toggleDayTodo(iso, todo.id))}
+              className="mt-0.5 h-5 w-5 shrink-0 rounded border-white/30 accent-violet-500"
+            />
+            <span
+              className={`min-w-0 flex-1 text-base leading-snug sm:text-sm ${todo.done ? "text-white/35 line-through" : "text-white/80"}`}
+            >
+              {todo.text}
+            </span>
+          </div>
+          <div className="flex shrink-0 gap-2 pl-14 sm:pl-0">
+            <button
+              type="button"
+              onClick={() => onUpdate(kickDayTodo(iso, todo.id))}
+              className="touch-manipulation min-h-[36px] flex-1 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/60 active:bg-white/10 sm:flex-none sm:px-2 sm:py-0.5 sm:text-[10px] sm:uppercase sm:tracking-wide"
+              title="Add to tomorrow's to-do list"
+            >
+              Kick
+            </button>
+            <button
+              type="button"
+              onClick={() => onUpdate(removeDayTodo(iso, todo.id))}
+              className="touch-manipulation flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-white/15 text-sm text-white/50 active:bg-white/10 hover:text-red-300 sm:min-w-0 sm:border-0"
+              aria-label="Remove task"
+            >
+              ✕
+            </button>
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function DayDetailModal({
   iso,
   doses,
@@ -102,6 +321,11 @@ function DayDetailModal({
 }) {
   const [journal, setJournal] = useState<DayJournal>(() => getDayJournal(iso));
   const [todoDraft, setTodoDraft] = useState("");
+  const [noteEditing, setNoteEditing] = useState(() => !getDayJournal(iso).noteLocked);
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [sectionOrder, setSectionOrder] = useState<DaySectionId[]>(() => getDaySectionOrder());
+  const [dragSectionId, setDragSectionId] = useState<DaySectionId | null>(null);
+  const [dragOverSectionId, setDragOverSectionId] = useState<DaySectionId | null>(null);
   const custody = custodyLabel(iso);
   const programDay = isProgramDay(iso);
   const dosesDone = doses.filter((d) => peptideCompleted.has(d.id)).length;
@@ -109,10 +333,56 @@ function DayDetailModal({
   const todosDone = journal.todos.filter((t) => t.done).length;
   const openTodos = journal.todos.length - todosDone;
 
+  const workoutSectionDone = workout
+    ? workout.type === "rest" || workoutDone
+    : false;
+  const mealSectionDone = meals.length > 0 && mealsDone === meals.length;
+  const todoSectionDone = journal.todos.length > 0 && openTodos === 0;
+  const peptideSectionDone = doses.length > 0 && dosesDone === doses.length;
+  const notesSectionDone = !!journal.noteLocked && journal.note.trim().length > 0;
+
+  const visibleSectionOrder = useMemo(
+    () =>
+      visibleDaySectionOrder(sectionOrder, {
+        hasWorkout: !!workout,
+        hasPeptides: doses.length > 0,
+      }),
+    [sectionOrder, workout, doses.length]
+  );
+
+  const dragProps = {
+    draggable: true as const,
+    isDragging: (id: DaySectionId) => dragSectionId === id,
+    isDragOver: (id: DaySectionId) => dragOverSectionId === id,
+    onDragHandleStart: (id: DaySectionId) => setDragSectionId(id),
+    onDragHandleEnd: () => {
+      setDragSectionId(null);
+      setDragOverSectionId(null);
+    },
+    onSectionDragOver: (id: DaySectionId) => {
+      if (dragSectionId && id !== dragSectionId) setDragOverSectionId(id);
+    },
+    onSectionDrop: (targetId: DaySectionId) => {
+      if (!dragSectionId) return;
+      const next = reorderDaySections(sectionOrder, dragSectionId, targetId);
+      setSectionOrder(next);
+      saveDaySectionOrder(next);
+      setDragSectionId(null);
+      setDragOverSectionId(null);
+    },
+  };
+
   useEffect(() => {
-    setJournal(getDayJournal(iso));
+    const loaded = getDayJournal(iso);
+    setJournal(loaded);
     setTodoDraft("");
+    setNoteEditing(!loaded.noteLocked);
+    setOpenSections({});
   }, [iso]);
+
+  function toggleSection(id: string) {
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -131,8 +401,33 @@ function DayDetailModal({
     setJournal((j) => ({ ...j, note }));
   }
 
-  function handleNoteBlur() {
+  function handleNoteSave() {
     updateJournal(saveDayNote(iso, journal.note));
+    setNoteEditing(false);
+  }
+
+  function handleNoteEdit() {
+    setNoteEditing(true);
+  }
+
+  function handlePlanNoteChange(section: PlanNoteSectionId, value: string) {
+    setJournal((j) => ({
+      ...j,
+      planNotes: { ...j.planNotes, [section]: value },
+    }));
+  }
+
+  function handlePlanNoteBlur(section: PlanNoteSectionId) {
+    const text = journal.planNotes?.[section] ?? "";
+    updateJournal(saveDaySectionPlanNote(iso, section, text));
+  }
+
+  function planNoteProps(section: PlanNoteSectionId) {
+    return {
+      planNote: journal.planNotes?.[section] ?? "",
+      onPlanNoteChange: (value: string) => handlePlanNoteChange(section, value),
+      onPlanNoteBlur: () => handlePlanNoteBlur(section),
+    };
   }
 
   function handleAddTodo(e: React.FormEvent) {
@@ -140,6 +435,229 @@ function DayDetailModal({
     if (!todoDraft.trim()) return;
     updateJournal(addDayTodo(iso, todoDraft));
     setTodoDraft("");
+  }
+
+  function withDrag(id: DaySectionId) {
+    return {
+      sectionId: id,
+      draggable: true,
+      isDragging: dragSectionId === id,
+      isDragOver: dragOverSectionId === id,
+      onDragHandleStart: dragProps.onDragHandleStart,
+      onDragHandleEnd: dragProps.onDragHandleEnd,
+      onSectionDragOver: dragProps.onSectionDragOver,
+      onSectionDrop: dragProps.onSectionDrop,
+    };
+  }
+
+  function renderDaySection(id: DaySectionId): ReactNode {
+    switch (id) {
+      case "workout":
+        if (!workout) return null;
+        return (
+          <DaySectionDropdown
+            key={id}
+            title="Workout"
+            open={!!openSections.workout}
+            onToggle={() => toggleSection("workout")}
+            done={workoutSectionDone}
+            {...planNoteProps("workout")}
+            {...withDrag(id)}
+          >
+            <WorkoutRoutineSection
+              iso={iso}
+              workout={workout}
+              workoutDone={workoutDone}
+              onToggleWorkout={onToggleWorkout}
+              embedded
+            />
+          </DaySectionDropdown>
+        );
+      case "meal":
+        return (
+          <DaySectionDropdown
+            key={id}
+            title="Meal"
+            open={!!openSections.meal}
+            onToggle={() => toggleSection("meal")}
+            done={mealSectionDone}
+            {...planNoteProps("meal")}
+            {...withDrag(id)}
+          >
+            <ul className="space-y-2">
+              {meals.map((meal) => {
+                const done = mealCompleted.has(meal.id);
+                return (
+                  <li key={meal.id}>
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition active:bg-white/5 sm:hover:border-white/20">
+                      <input
+                        type="checkbox"
+                        checked={done}
+                        onChange={() => onToggleMeal(meal.id)}
+                        className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-amber-500"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <span className={`font-semibold ${done ? "text-white/40 line-through" : "text-white"}`}>
+                          {meal.label}
+                        </span>
+                        <ul className={`mt-1 space-y-0.5 text-sm ${done ? "text-white/30 line-through" : "text-white/60"}`}>
+                          {meal.items.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/50">
+              <p className="font-semibold text-white/70">Daily totals</p>
+              <ul className="mt-1.5 space-y-0.5">
+                {DAILY_INGREDIENTS.map((ing) => (
+                  <li key={ing.item}>
+                    {ing.item}: <span className="text-white/70">{ing.amount}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-white/40">
+                {DAILY_MACROS.calories} cal · {DAILY_MACROS.protein} protein · {DAILY_MACROS.carbs} carbs ·{" "}
+                {DAILY_MACROS.fat} fat
+              </p>
+            </div>
+          </DaySectionDropdown>
+        );
+      case "todo":
+        return (
+          <DaySectionDropdown
+            key={id}
+            title="To Do"
+            open={!!openSections.todo}
+            onToggle={() => toggleSection("todo")}
+            done={todoSectionDone}
+            {...planNoteProps("todo")}
+            {...withDrag(id)}
+          >
+            <form onSubmit={handleAddTodo} className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={todoDraft}
+                onChange={(e) => setTodoDraft(e.target.value)}
+                placeholder="Add a task…"
+                className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-base text-white placeholder:text-white/30 outline-none focus:border-mdc-blue/50 sm:text-sm"
+              />
+              <button
+                type="submit"
+                disabled={!todoDraft.trim()}
+                className="touch-manipulation min-h-[44px] shrink-0 rounded-xl bg-mdc-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-white hover:text-navy active:opacity-90 disabled:opacity-40 sm:py-2"
+              >
+                Add
+              </button>
+            </form>
+            {journal.todos.length > 0 ? (
+              <DayTodoList iso={iso} todos={journal.todos} onUpdate={updateJournal} />
+            ) : (
+              <p className="mt-2 text-xs text-white/35">No tasks yet.</p>
+            )}
+          </DaySectionDropdown>
+        );
+      case "peptides":
+        if (doses.length === 0) return null;
+        return (
+          <DaySectionDropdown
+            key={id}
+            title="Peptides"
+            open={!!openSections.peptides}
+            onToggle={() => toggleSection("peptides")}
+            done={peptideSectionDone}
+            {...planNoteProps("peptides")}
+            {...withDrag(id)}
+          >
+            <ul className="space-y-2">
+              {doses.map((dose) => {
+                const done = peptideCompleted.has(dose.id);
+                return (
+                  <li key={dose.id}>
+                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition active:bg-white/5 sm:hover:border-white/20">
+                      <input
+                        type="checkbox"
+                        checked={done}
+                        onChange={() => onTogglePeptide(dose.id)}
+                        className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-emerald-500"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-2">
+                          <span className={`font-semibold ${done ? "text-white/40 line-through" : "text-white"}`}>
+                            {dose.compound}
+                          </span>
+                          <span className={`text-sm tabular-nums ${done ? "text-white/30" : "text-emerald-300"}`}>
+                            {dose.doseLabel}
+                          </span>
+                          {dose.syringeUnits != null && (
+                            <span className="text-xs tabular-nums text-mdc-blue">
+                              → {dose.syringeUnits} units
+                            </span>
+                          )}
+                        </div>
+                        {dose.phase && <p className="mt-0.5 text-xs text-white/45">{dose.phase}</p>}
+                        {dose.notes && <p className="mt-0.5 text-xs text-white/40">{dose.notes}</p>}
+                      </div>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </DaySectionDropdown>
+        );
+      case "notes":
+        return (
+          <DaySectionDropdown
+            key={id}
+            title="Notes"
+            open={!!openSections.notes}
+            onToggle={() => toggleSection("notes")}
+            done={notesSectionDone}
+            {...withDrag(id)}
+          >
+            <div className="flex items-center justify-end gap-2">
+              {noteEditing ? (
+                <button
+                  type="button"
+                  onClick={handleNoteSave}
+                  className="touch-manipulation min-h-[36px] rounded-lg bg-mdc-blue px-3 py-1.5 text-xs font-semibold text-white active:opacity-90"
+                >
+                  Save
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNoteEdit}
+                  className="touch-manipulation min-h-[36px] rounded-lg border border-mdc-blue/30 px-3 py-1.5 text-xs font-semibold text-blue-200 active:bg-mdc-blue/10"
+                >
+                  Edit
+                </button>
+              )}
+            </div>
+            {noteEditing ? (
+              <textarea
+                value={journal.note}
+                onChange={(e) => handleNoteChange(e.target.value)}
+                placeholder="Add notes for this day…"
+                rows={4}
+                className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-base text-white placeholder:text-white/30 outline-none focus:border-mdc-blue/50 focus:ring-1 focus:ring-mdc-blue/30 sm:py-2.5 sm:text-sm"
+              />
+            ) : journal.note.trim() ? (
+              <p className="mt-2 whitespace-pre-wrap rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-sm leading-relaxed text-white/85">
+                {journal.note}
+              </p>
+            ) : (
+              <p className="mt-2 text-xs text-white/35">No notes saved — tap Edit to add.</p>
+            )}
+          </DaySectionDropdown>
+        );
+      default:
+        return null;
+    }
   }
 
   return (
@@ -200,177 +718,13 @@ function DayDetailModal({
         ) : (
           <>
         {custody && (
-          <div className="mt-4 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5 text-sm text-sky-100">
+          <div className="rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5 text-sm text-sky-100">
             {custody}
           </div>
         )}
 
-        {workout && (
-          <WorkoutRoutineSection
-            iso={iso}
-            workout={workout}
-            workoutDone={workoutDone}
-            onToggleWorkout={onToggleWorkout}
-          />
-        )}
-
-        <div className="mt-4 sm:mt-5">
-          <h4 className="text-xs font-semibold uppercase tracking-widest text-white/45">Notes</h4>
-          <textarea
-            value={journal.note}
-            onChange={(e) => handleNoteChange(e.target.value)}
-            onBlur={handleNoteBlur}
-            placeholder="Add notes for this day…"
-            rows={3}
-            className="mt-2 w-full resize-y rounded-xl border border-white/10 bg-black/20 px-3 py-3 text-base text-white placeholder:text-white/30 outline-none focus:border-mdc-blue/50 focus:ring-1 focus:ring-mdc-blue/30 sm:py-2.5 sm:text-sm"
-          />
-        </div>
-
-        <div className="mt-4 sm:mt-5">
-          <h4 className="text-xs font-semibold uppercase tracking-widest text-white/45">To-do</h4>
-          <form onSubmit={handleAddTodo} className="mt-2 flex flex-col gap-2 sm:flex-row">
-            <input
-              type="text"
-              value={todoDraft}
-              onChange={(e) => setTodoDraft(e.target.value)}
-              placeholder="Add a task…"
-              className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-base text-white placeholder:text-white/30 outline-none focus:border-mdc-blue/50 sm:text-sm"
-            />
-            <button
-              type="submit"
-              disabled={!todoDraft.trim()}
-              className="touch-manipulation min-h-[44px] shrink-0 rounded-xl bg-mdc-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-white hover:text-navy active:opacity-90 disabled:opacity-40 sm:py-2"
-            >
-              Add
-            </button>
-          </form>
-          {journal.todos.length > 0 ? (
-            <ul className="mt-2 space-y-2">
-              {journal.todos.map((todo) => (
-                <li
-                  key={todo.id}
-                  className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-start sm:gap-2 sm:p-2.5"
-                >
-                  <div className="flex min-w-0 flex-1 items-start gap-3">
-                    <input
-                      type="checkbox"
-                      checked={todo.done}
-                      onChange={() => updateJournal(toggleDayTodo(iso, todo.id))}
-                      className="mt-0.5 h-5 w-5 shrink-0 rounded border-white/30 accent-violet-500"
-                    />
-                    <span className={`min-w-0 flex-1 text-base leading-snug sm:text-sm ${todo.done ? "text-white/35 line-through" : "text-white/80"}`}>
-                      {todo.text}
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 gap-2 pl-8 sm:pl-0">
-                    <button
-                      type="button"
-                      onClick={() => updateJournal(kickDayTodo(iso, todo.id))}
-                      className="touch-manipulation min-h-[36px] flex-1 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/60 active:bg-white/10 sm:flex-none sm:px-2 sm:py-0.5 sm:text-[10px] sm:uppercase sm:tracking-wide"
-                      title="Add to tomorrow's to-do list"
-                    >
-                      Kick
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => updateJournal(removeDayTodo(iso, todo.id))}
-                      className="touch-manipulation flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-white/15 text-sm text-white/50 active:bg-white/10 hover:text-red-300 sm:min-w-0 sm:border-0"
-                      aria-label="Remove task"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-xs text-white/35">No tasks yet.</p>
-          )}
-        </div>
-
-        {doses.length > 0 && (
-          <div className="mt-5">
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-white/45">Peptides</h4>
-            <ul className="mt-2 space-y-2">
-              {doses.map((dose) => {
-                const done = peptideCompleted.has(dose.id);
-                return (
-                  <li key={dose.id}>
-                    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition active:bg-white/5 sm:hover:border-white/20">
-                      <input
-                        type="checkbox"
-                        checked={done}
-                        onChange={() => onTogglePeptide(dose.id)}
-                        className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-emerald-500"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-2">
-                          <span className={`font-semibold ${done ? "text-white/40 line-through" : "text-white"}`}>
-                            {dose.compound}
-                          </span>
-                          <span className={`text-sm tabular-nums ${done ? "text-white/30" : "text-emerald-300"}`}>
-                            {dose.doseLabel}
-                          </span>
-                          {dose.syringeUnits != null && (
-                            <span className="text-xs tabular-nums text-mdc-blue">
-                              → {dose.syringeUnits} units
-                            </span>
-                          )}
-                        </div>
-                        {dose.phase && <p className="mt-0.5 text-xs text-white/45">{dose.phase}</p>}
-                        {dose.notes && <p className="mt-0.5 text-xs text-white/40">{dose.notes}</p>}
-                      </div>
-                    </label>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        )}
-
-        <div className="mt-5">
-          <h4 className="text-xs font-semibold uppercase tracking-widest text-white/45">Meal plan</h4>
-          <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-white/50">
-            <p className="font-semibold text-white/70">Daily totals</p>
-            <ul className="mt-1.5 space-y-0.5">
-              {DAILY_INGREDIENTS.map((ing) => (
-                <li key={ing.item}>
-                  {ing.item}: <span className="text-white/70">{ing.amount}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-white/40">
-              {DAILY_MACROS.calories} cal · {DAILY_MACROS.protein} protein · {DAILY_MACROS.carbs} carbs ·{" "}
-              {DAILY_MACROS.fat} fat
-            </p>
-          </div>
-          <ul className="mt-2 space-y-2">
-            {meals.map((meal) => {
-              const done = mealCompleted.has(meal.id);
-              return (
-                <li key={meal.id}>
-                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition active:bg-white/5 sm:hover:border-white/20">
-                    <input
-                      type="checkbox"
-                      checked={done}
-                      onChange={() => onToggleMeal(meal.id)}
-                      className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-amber-500"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <span className={`font-semibold ${done ? "text-white/40 line-through" : "text-white"}`}>
-                        {meal.label}
-                      </span>
-                      <ul className={`mt-1 space-y-0.5 text-sm ${done ? "text-white/30 line-through" : "text-white/60"}`}>
-                        {meal.items.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
+        <div className="space-y-3">
+          {visibleSectionOrder.map((id) => renderDaySection(id))}
         </div>
           </>
         )}
@@ -465,13 +819,6 @@ export default function PeptideCalendarPanel() {
 
   return (
     <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
-      <p className="text-xs leading-relaxed text-white/55 sm:max-w-3xl sm:text-sm">
-        Plan starts {dayLabel(PROGRAM_START)} (today). PPL UL begins with <strong className="text-white/80">Push</strong>.
-        <strong className="text-white/80"> Test + Reta</strong> today · <strong className="text-white/80">Melanotan II</strong>{" "}
-        {dayLabel(MELANOTAN_START)} · <strong className="text-white/80">GHK-Cu</strong> {dayLabel(GHK_START)}.
-        David & Charles every other week from Mon Jul 6.
-      </p>
-
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:flex sm:flex-wrap sm:justify-between sm:gap-3">
         <button
           type="button"

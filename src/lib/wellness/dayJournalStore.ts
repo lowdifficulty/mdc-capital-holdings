@@ -6,13 +6,35 @@ export interface DayTodo {
   done: boolean;
 }
 
+export type PlanNoteSectionId = "workout" | "meal" | "todo" | "peptides";
+
+export interface DaySectionPlanNotes {
+  workout?: string;
+  meal?: string;
+  todo?: string;
+  peptides?: string;
+}
+
 export interface DayJournal {
   note: string;
+  /** When true, note is saved and read-only until Edit. */
+  noteLocked?: boolean;
+  planNotes?: DaySectionPlanNotes;
   todos: DayTodo[];
 }
 
 function emptyJournal(): DayJournal {
-  return { note: "", todos: [] };
+  return { note: "", noteLocked: false, planNotes: {}, todos: [] };
+}
+
+function normalizeJournal(journal: DayJournal): DayJournal {
+  const note = journal.note ?? "";
+  return {
+    note,
+    noteLocked: journal.noteLocked ?? note.trim().length > 0,
+    planNotes: { ...journal.planNotes },
+    todos: journal.todos ?? [],
+  };
 }
 
 function readAll(): Record<string, DayJournal> {
@@ -48,11 +70,12 @@ export function getAllDayJournals(): Record<string, DayJournal> {
 
 export function getDayJournal(dateIso: string): DayJournal {
   const all = readAll();
-  return all[dateIso] ?? emptyJournal();
+  return normalizeJournal(all[dateIso] ?? emptyJournal());
 }
 
 export function dayHasJournalActivity(journal: DayJournal): boolean {
   if (journal.note.trim()) return true;
+  if (journal.planNotes && Object.values(journal.planNotes).some((n) => n?.trim())) return true;
   return journal.todos.length > 0;
 }
 
@@ -62,10 +85,26 @@ export function dayJournalOpenTodos(journal: DayJournal): number {
 
 export function saveDayNote(dateIso: string, note: string): DayJournal {
   const all = readAll();
-  const journal = ensure(all, dateIso);
+  const journal = normalizeJournal(ensure(all, dateIso));
   journal.note = note;
+  journal.noteLocked = true;
+  all[dateIso] = journal;
   writeAll(all);
   return { ...journal };
+}
+
+export function saveDaySectionPlanNote(
+  dateIso: string,
+  section: PlanNoteSectionId,
+  text: string
+): DayJournal {
+  const all = readAll();
+  const journal = normalizeJournal(ensure(all, dateIso));
+  if (!journal.planNotes) journal.planNotes = {};
+  journal.planNotes[section] = text;
+  all[dateIso] = journal;
+  writeAll(all);
+  return { ...journal, planNotes: { ...journal.planNotes } };
 }
 
 export function addDayTodo(dateIso: string, text: string): DayJournal {
@@ -93,6 +132,26 @@ export function removeDayTodo(dateIso: string, todoId: string): DayJournal {
   journal.todos = journal.todos.filter((t) => t.id !== todoId);
   writeAll(all);
   return { ...journal, todos: [...journal.todos] };
+}
+
+export function reorderDayTodos(
+  dateIso: string,
+  draggedId: string,
+  targetId: string
+): DayJournal {
+  const all = readAll();
+  const journal = ensure(all, dateIso);
+  const from = journal.todos.findIndex((t) => t.id === draggedId);
+  const to = journal.todos.findIndex((t) => t.id === targetId);
+  if (from < 0 || to < 0 || from === to) {
+    return { ...journal, todos: [...journal.todos] };
+  }
+  const next = [...journal.todos];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  journal.todos = next;
+  writeAll(all);
+  return { ...journal, todos: next };
 }
 
 /** Move a todo to tomorrow's list (same text, unchecked). */

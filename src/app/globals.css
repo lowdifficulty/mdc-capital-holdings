@@ -107,3 +107,193 @@ h3 {
   background-size: 288px 144px;
   background-attachment: fixed;
 }
+
+/* ── Wayne front company (home page only) ── */
+
+.home-wayne-hero-texture {
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg width='288' height='144' viewBox='0 0 288 144' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M72 1.5 L142.5 72 L72 142.5 L1.5 72 Z' fill='none' stroke='%23c9a227' stroke-opacity='0.12' stroke-width='0.8' stroke-linejoin='round'/%3E%3Cpath d='M216 1.5 L286.5 72 L216 142.5 L145.5 72 Z' fill='none' stroke='%23c9a227' stroke-opacity='0.08' stroke-width='0.8' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 288px 144px;
+}
+
+.home-wayne-hero-gold-wash {
+  background: radial-gradient(ellipse 60% 50% at 20% 30%, rgba(201, 162, 39, 0.08) 0%, transparent 65%);
+}
+
+.home-wayne-hero-tech {
+  opacity: 0.35;
+  -webkit-mask-image: linear-gradient(to left, black 0%, transparent 85%);
+  mask-image: linear-gradient(to left, black 0%, transparent 85%);
+  background-image:
+    linear-gradient(rgba(201, 162, 39, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(201, 162, 39, 0.06) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.home-wayne-tufting {
+  background-image: url("data:image/svg+xml,%3Csvg width='288' height='144' viewBox='0 0 288 144' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M72 1.5 L142.5 72 L72 142.5 L1.5 72 Z' fill='none' stroke='%23c9a227' stroke-opacity='0.1' stroke-width='0.8'/%3E%3Cpath d='M216 1.5 L286.5 72 L216 142.5 L145.5 72 Z' fill='none' stroke='%23c9a227' stroke-opacity='0.07' stroke-width='0.8'/%3E%3C/svg%3E");
+  background-size: 288px 144px;
+}
+
+.home-wayne-portfolio-card article,
+.home-wayne-portfolio-card > div {
+  border-color: rgba(201, 162, 39, 0.15) !important;
+  background: #111 !important;
+}
+
+.home-wayne-portfolio-card h3,
+.home-wayne-portfolio-card .font-serif {
+  color: #f8f4ec !important;
+}
+
+.home-wayne-portfolio-card p {
+  color: rgba(234, 230, 220, 0.65) !important;
+}
+
+.home-wayne-capability-card article,
+.home-wayne-capability-card > div {
+  border-color: rgba(201, 162, 39, 0.12) !important;
+  background: rgba(17, 17, 17, 0.9) !important;
+}
+
+.home-wayne-capability-card h3 {
+  color: #f8f4ec !important;
+}
+
+.home-wayne-capability-card p {
+  color: rgba(234, 230, 220, 0.6) !important;
+}
+
+.home-wayne-capability-card span.inline-flex {
+  background: rgba(201, 162, 39, 0.15) !important;
+  color: #c9a227 !important;
+}
+
+/* ── Wayne / Batcave dashboard ── */
+
+.dashboard-wayne {
+  --color-navy: #050505;
+  --color-mdc-blue: #c9a227;
+  --color-soft-blue: rgba(201, 162, 39, 0.08);
+  background-color: #050505;
+  color: #eae6dc;
+}
+
+.dashboard-wayne ::selection {
+  background-color: #c9a227;
+  color: #050505;
+}
+
+.dashboard-wayne-texture {
+  opacity: 0.28;
+  background-image: url("data:image/svg+xml,%3Csvg width='288' height='144' viewBox='0 0 288 144' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M72 1.5 L142.5 72 L72 142.5 L1.5 72 Z' fill='none' stroke='%23c9a227' stroke-opacity='0.1' stroke-width='0.8' stroke-linejoin='round'/%3E%3Cpath d='M216 1.5 L286.5 72 L216 142.5 L145.5 72 Z' fill='none' stroke='%23c9a227' stroke-opacity='0.07' stroke-width='0.8' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 288px 144px;
+  pointer-events: none;
+}
+
+.dashboard-wayne-gold-wash {
+  background: radial-gradient(ellipse 55% 45% at 12% 8%, rgba(201, 162, 39, 0.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.dashboard-wayne .text-white {
+  color: #f8f4ec;
+}
+
+.dashboard-wayne .bg-mdc-blue.text-white,
+.dashboard-wayne button.bg-mdc-blue {
+  color: #050505;
+}
+
+.dashboard-wayne .text-blue-100 {
+  color: #f0e6c8;
+}
+
+.dashboard-wayne .text-blue-200 {
+  color: #e8d9a8;
+}
+
+.dashboard-wayne .border-white\/10 {
+  border-color: rgba(201, 162, 39, 0.15);
+}
+
+.dashboard-wayne .border-white\/15 {
+  border-color: rgba(201, 162, 39, 0.18);
+}
+
+.dashboard-wayne .border-white\/20 {
+  border-color: rgba(201, 162, 39, 0.22);
+}
+
+.dashboard-wayne .border-white\/30 {
+  border-color: rgba(201, 162, 39, 0.28);
+}
+
+.dashboard-wayne .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(201, 162, 39, 0.12);
+}
+
+.dashboard-wayne .text-white\/40 {
+  color: rgba(234, 230, 220, 0.4);
+}
+
+.dashboard-wayne .text-white\/45 {
+  color: rgba(234, 230, 220, 0.45);
+}
+
+.dashboard-wayne .text-white\/50 {
+  color: rgba(234, 230, 220, 0.5);
+}
+
+.dashboard-wayne .text-white\/55 {
+  color: rgba(234, 230, 220, 0.55);
+}
+
+.dashboard-wayne .text-white\/60 {
+  color: rgba(234, 230, 220, 0.6);
+}
+
+.dashboard-wayne .text-white\/70 {
+  color: rgba(234, 230, 220, 0.7);
+}
+
+.dashboard-wayne .text-white\/80 {
+  color: rgba(234, 230, 220, 0.8);
+}
+
+.dashboard-wayne .bg-white\/5 {
+  background-color: rgba(201, 162, 39, 0.04);
+}
+
+.dashboard-wayne .bg-white\/\[0\.02\] {
+  background-color: rgba(201, 162, 39, 0.03);
+}
+
+.dashboard-wayne .bg-white\/\[0\.03\] {
+  background-color: rgba(201, 162, 39, 0.04);
+}
+
+.dashboard-wayne .bg-white\/15 {
+  background-color: rgba(201, 162, 39, 0.12);
+}
+
+.dashboard-wayne .hover\:bg-white\/5:hover {
+  background-color: rgba(201, 162, 39, 0.06);
+}
+
+.dashboard-wayne .hover\:bg-white\/10:hover {
+  background-color: rgba(201, 162, 39, 0.1);
+}
+
+.dashboard-wayne .hover\:border-white\/30:hover {
+  border-color: rgba(201, 162, 39, 0.35);
+}
+
+.dashboard-wayne .ring-white\/20 {
+  --tw-ring-color: rgba(201, 162, 39, 0.25);
+}
+
+.dashboard-wayne input::placeholder,
+.dashboard-wayne textarea::placeholder {
+  color: rgba(234, 230, 220, 0.3);
+}

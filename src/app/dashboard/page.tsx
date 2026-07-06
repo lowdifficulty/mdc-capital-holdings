@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth/session";
 import SentimentDashboard from "@/components/dashboard/SentimentDashboard";
 
 export const metadata = {
-  title: "Market Dashboard | MDC Capital Holdings",
+  title: "Operations Dashboard | MDC Capital Holdings",
   robots: { index: false, follow: false },
 };
 

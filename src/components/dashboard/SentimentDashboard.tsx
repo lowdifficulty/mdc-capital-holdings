@@ -9,6 +9,8 @@ import MoversMobileList from "@/components/dashboard/MoversMobileList";
 import PositionsPanel from "@/components/dashboard/PositionsPanel";
 import QuiverAnalysisPanel from "@/components/dashboard/QuiverAnalysisPanel";
 import PeptideCalendarPanel from "@/components/dashboard/PeptideCalendarPanel";
+import FamilyPanel from "@/components/dashboard/FamilyPanel";
+import CommunityPanel from "@/components/dashboard/CommunityPanel";
 import {
   formatSentimentScore,
   formatMentions,
@@ -29,9 +31,39 @@ import { useQuiverSync } from "@/hooks/useQuiverSync";
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
 
-type MainTab = "health" | "finance";
+type BlankTab = "romance" | "purpose";
+
+type MainTab = "health" | "finance" | "family" | "community" | BlankTab;
 type FinanceView = SentimentPeriod | "movers" | "positions" | "quiver";
-type DashboardView = "peptides" | FinanceView;
+type DashboardView = "peptides" | "family" | "community" | BlankTab | FinanceView;
+
+const BLANK_TABS: readonly BlankTab[] = ["romance", "purpose"];
+
+const MAIN_TABS: ReadonlyArray<[MainTab, string]> = [
+  ["health", "Health"],
+  ["finance", "Finance"],
+  ["family", "Family"],
+  ["romance", "Romance"],
+  ["community", "Community"],
+  ["purpose", "Purpose"],
+];
+
+function dashboardViewForTab(tab: MainTab, financeView: FinanceView): DashboardView {
+  if (tab === "finance") return financeView;
+  if (tab === "health") return "peptides";
+  if (tab === "family") return "family";
+  if (tab === "community") return "community";
+  return tab;
+}
+
+function isPersonalDashboardView(view: DashboardView): boolean {
+  if (view === "peptides" || view === "family" || view === "community") return true;
+  return (BLANK_TABS as readonly string[]).includes(view);
+}
+
+function isSentimentPeriod(view: DashboardView): view is SentimentPeriod {
+  return view === "24h" || view === "week" || view === "month";
+}
 
 const FINANCE_TABS: ReadonlyArray<[FinanceView, string]> = [
   ["positions", "My Positions"],
@@ -227,7 +259,7 @@ export default function SentimentDashboard() {
   const router = useRouter();
   const [mainTab, setMainTab] = useState<MainTab>("health");
   const [financeView, setFinanceView] = useState<FinanceView>("positions");
-  const view: DashboardView = mainTab === "health" ? "peptides" : financeView;
+  const view: DashboardView = dashboardViewForTab(mainTab, financeView);
 
   function openFinanceView(next: FinanceView) {
     setMainTab("finance");
@@ -442,7 +474,12 @@ export default function SentimentDashboard() {
           return;
         }
 
-        if (view === "positions" || view === "quiver" || view === "peptides") {
+        if (view === "positions" || view === "quiver" || isPersonalDashboardView(view)) {
+          if (!silent) setLoading(false);
+          return;
+        }
+
+        if (!isSentimentPeriod(view)) {
           if (!silent) setLoading(false);
           return;
         }
@@ -486,7 +523,7 @@ export default function SentimentDashboard() {
   }, [cacheReady, loadDashboardData]);
 
   useEffect(() => {
-    if (view !== "movers" && view !== "positions" && view !== "quiver" && view !== "peptides") setMoverFilter("all");
+    if (!isPersonalDashboardView(view) && view !== "movers" && view !== "positions" && view !== "quiver") setMoverFilter("all");
   }, [view]);
 
   useEffect(() => {
@@ -495,7 +532,7 @@ export default function SentimentDashboard() {
   }, [loadWatchlist, loadPositionSymbols]);
 
   useEffect(() => {
-    if (!autoRefresh || view === "movers" || view === "positions" || view === "quiver" || view === "peptides") return;
+    if (!autoRefresh || view === "movers" || view === "positions" || view === "quiver" || isPersonalDashboardView(view)) return;
     const id = window.setInterval(
       () => void loadDashboardData({ force: true, silent: true }),
       POLL_MS
@@ -524,47 +561,52 @@ export default function SentimentDashboard() {
   const warnings = report?.warnings ?? movers?.warnings ?? [];
 
   return (
-    <div className="min-h-screen bg-navy text-white">
-      <header className="border-b border-white/10 bg-navy/90 backdrop-blur-md sticky top-0 z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+    <div className="dashboard-wayne relative min-h-screen text-[#eae6dc]">
+      <div className="pointer-events-none fixed inset-0 dashboard-wayne-texture" aria-hidden />
+      <div className="pointer-events-none fixed inset-0 dashboard-wayne-gold-wash" aria-hidden />
+
+      <header className="sticky top-0 z-20 border-b border-[#c9a227]/15 bg-[#050505]/95 backdrop-blur-md">
+        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Link
               href="/"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-mdc-blue text-xs font-bold"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-[#c9a227] text-xs font-bold text-[#050505]"
             >
               MDC
             </Link>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">Market Dashboard</p>
-              <p className="hidden text-xs text-white/50 sm:block">Health · Finance</p>
+              <p className="truncate text-xs font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
+                Command center
+              </p>
+              <p className="truncate font-serif text-sm text-[#f8f4ec] sm:text-base">
+                Operations Dashboard
+              </p>
+              <p className="hidden truncate text-xs text-[#eae6dc]/45 lg:block">
+                Health · Finance · Family · Romance · Community · Purpose
+              </p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => void handleLogout()}
-            className="shrink-0 text-sm text-white/60 hover:text-white"
+            className="shrink-0 rounded-sm border border-[#c9a227]/35 px-3 py-1.5 text-sm uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:border-[#c9a227] hover:text-[#c9a227]"
           >
             Sign out
           </button>
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
-        <div className="flex gap-2">
-          {(
-            [
-              ["health", "Health"],
-              ["finance", "Finance"],
-            ] as const
-          ).map(([key, label]) => (
+      <div className="relative z-10 mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">
+        <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+          {MAIN_TABS.map(([key, label]) => (
             <button
               key={key}
               type="button"
               onClick={() => setMainTab(key)}
-              className={`touch-manipulation min-h-[48px] flex-1 rounded-2xl px-4 py-3 text-base font-bold transition active:opacity-90 sm:flex-none sm:min-h-0 sm:min-w-[140px] sm:px-6 ${
+              className={`touch-manipulation min-h-[44px] shrink-0 rounded-sm px-3 py-2.5 text-sm font-bold uppercase tracking-wide transition active:opacity-90 sm:min-h-0 sm:px-4 sm:py-3 sm:text-base ${
                 mainTab === key
-                  ? "bg-mdc-blue text-white shadow-lg shadow-mdc-blue/20"
-                  : "border border-white/15 text-white/70 hover:border-white/30 hover:text-white"
+                  ? "bg-[#c9a227] text-[#050505] shadow-lg shadow-[#c9a227]/20"
+                  : "border border-[#c9a227]/20 text-[#eae6dc]/65 hover:border-[#c9a227]/40 hover:text-[#c9a227]"
               }`}
             >
               {label}
@@ -579,10 +621,10 @@ export default function SentimentDashboard() {
                 key={key}
                 type="button"
                 onClick={() => setFinanceView(key)}
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition sm:px-5 ${
+                className={`shrink-0 rounded-sm px-4 py-2 text-sm font-semibold uppercase tracking-wide transition sm:px-5 ${
                   financeView === key
-                    ? "bg-white/15 text-white ring-1 ring-white/20"
-                    : "border border-white/15 text-white/70 hover:border-white/30"
+                    ? "bg-[#c9a227]/15 text-[#f8f4ec] ring-1 ring-[#c9a227]/30"
+                    : "border border-[#c9a227]/20 text-[#eae6dc]/65 hover:border-[#c9a227]/40"
                 }`}
               >
                 {label}
@@ -601,7 +643,7 @@ export default function SentimentDashboard() {
           </div>
         )}
 
-        {view !== "movers" && view !== "positions" && view !== "quiver" && view !== "peptides" && (
+        {!isPersonalDashboardView(view) && view !== "movers" && view !== "positions" && view !== "quiver" && (
           <>
             <form onSubmit={handleAnalyze} className="mt-6 flex flex-wrap items-end gap-3">
               <div className="flex-1 min-w-[200px]">
@@ -612,14 +654,14 @@ export default function SentimentDashboard() {
                   id="ticker"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value.toUpperCase())}
-                  className="w-full max-w-xs rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm outline-none focus:border-mdc-blue focus:ring-2 focus:ring-mdc-blue/30"
+                className="w-full max-w-xs rounded-sm border border-[#c9a227]/20 bg-black/30 px-4 py-2.5 text-sm outline-none focus:border-[#c9a227] focus:ring-2 focus:ring-[#c9a227]/25"
                   placeholder="AAPL"
                 />
               </div>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-full bg-mdc-blue px-6 py-2.5 text-sm font-semibold hover:bg-white hover:text-navy disabled:opacity-50"
+                className="rounded-sm bg-[#c9a227] px-6 py-2.5 text-sm font-semibold uppercase tracking-wide text-[#050505] hover:bg-[#e0c56a] disabled:opacity-50"
               >
                 Analyze
               </button>
@@ -674,6 +716,24 @@ export default function SentimentDashboard() {
           </div>
         </div>
 
+        <div className={mainTab === "family" ? undefined : "hidden"} aria-hidden={mainTab !== "family"}>
+          <FamilyPanel />
+        </div>
+
+        <div className={mainTab === "community" ? undefined : "hidden"} aria-hidden={mainTab !== "community"}>
+          <CommunityPanel />
+        </div>
+
+        {BLANK_TABS.map((tab) => (
+          <div
+            key={tab}
+            className={mainTab === tab ? undefined : "hidden"}
+            aria-hidden={mainTab !== tab}
+          >
+            <div className="mt-6 min-h-[50vh] rounded-sm border border-[#c9a227]/12 bg-black/20" />
+          </div>
+        ))}
+
         <div className={mainTab === "finance" && financeView === "quiver" ? undefined : "hidden"} aria-hidden={!(mainTab === "finance" && financeView === "quiver")}>
           <QuiverAnalysisPanel
             syncing={quiverSyncing}
@@ -721,13 +781,13 @@ export default function SentimentDashboard() {
 
         {error && <p className="mt-4 text-sm text-red-300">{error}</p>}
 
-        {loading && !report && !movers && view !== "positions" && view !== "quiver" && view !== "peptides" && (
+        {loading && !report && !movers && view !== "positions" && view !== "quiver" && !isPersonalDashboardView(view) && (
           <p className="mt-12 text-center text-white/50">
             {loadingPeriodLabel(view)}
           </p>
         )}
 
-        {report && view !== "movers" && view !== "positions" && view !== "quiver" && view !== "peptides" && (
+        {report && view !== "movers" && view !== "positions" && view !== "quiver" && !isPersonalDashboardView(view) && (
           <div className="mt-6 space-y-6 sm:mt-8 sm:space-y-8">
             <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6 lg:col-span-1">
