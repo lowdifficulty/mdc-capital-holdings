@@ -46,7 +46,12 @@ function buildSummary(positions: PositionWithQuote[]): PositionsSummary {
 
 export async function enrichPositions(positions: Position[]): Promise<PositionsReport> {
   const symbols = positions.map((p) => p.symbol);
-  const priceMap = await fetchLiveBulkPriceSnapshots(symbols);
+  let priceMap: Awaited<ReturnType<typeof fetchLiveBulkPriceSnapshots>>;
+  try {
+    priceMap = await fetchLiveBulkPriceSnapshots(symbols);
+  } catch {
+    priceMap = new Map();
+  }
 
   const enriched: PositionWithQuote[] = positions.map((p) => {
     const quote = priceMap.get(p.symbol);

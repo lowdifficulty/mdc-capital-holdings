@@ -44,8 +44,8 @@ const MAIN_TABS: ReadonlyArray<[MainTab, string]> = [
   ["health", "Health"],
   ["finance", "Finance"],
   ["family", "Family"],
-  ["romance", "Romance"],
   ["community", "Community"],
+  ["romance", "Romance"],
   ["purpose", "Purpose"],
 ];
 
@@ -616,7 +616,7 @@ export default function SentimentDashboard() {
                   Operations Dashboard
                 </p>
                 <p className="hidden truncate text-xs text-[#eae6dc]/45 lg:block">
-                  Health · Finance · Family · Romance · Community · Purpose
+                  Health · Finance · Family · Community · Romance · Purpose
                 </p>
               </div>
             </div>
@@ -752,7 +752,7 @@ export default function SentimentDashboard() {
           </>
         )}
 
-        {view === "positions" && (
+        {mainTab === "finance" && financeView === "positions" && (
           <PositionsPanel
             onPositionsChange={setPositionSymbols}
             onOpenSentiment={(sym) => {
@@ -764,11 +764,11 @@ export default function SentimentDashboard() {
           />
         )}
 
-        <div className={mainTab === "health" ? undefined : "hidden"} aria-hidden={mainTab !== "health"}>
+        {mainTab === "health" && (
           <div className="max-w-3xl sm:max-w-none">
             <PeptideCalendarPanel syncToken={wellnessSyncToken} />
           </div>
-        </div>
+        )}
 
         <div className={mainTab === "family" ? undefined : "hidden"} aria-hidden={mainTab !== "family"}>
           <FamilyPanel />

@@ -71,6 +71,30 @@ function formatMetricsSummary(metrics: DailyBodyMetrics): string {
   return parts.join(" · ");
 }
 
+function formatMetricsSummaryWithDeltas(
+  metrics: DailyBodyMetrics,
+  previous: { dateIso: string; metrics: DailyBodyMetrics }
+): string {
+  const parts: string[] = [];
+  for (const field of METRIC_FIELDS) {
+    const value = metrics[field.key].trim();
+    if (!value) continue;
+    let line: string;
+    if (field.key === "weight") line = `${value} lb`;
+    else if (field.key === "bodyFatPct") line = `${value}% BF`;
+    else if (field.key === "bmi") line = `BMI ${value}`;
+    else line = `${value}${field.unit ? ` ${field.unit}` : ""}`;
+
+    const prevValue = previous.metrics[field.key].trim();
+    if (prevValue) {
+      const delta = formatMetricDelta(value, prevValue, field.unit);
+      if (delta) line += ` (${delta})`;
+    }
+    parts.push(line);
+  }
+  return parts.join(" · ");
+}
+
 function DailyBodyMetricsPanel({ iso, embedded }: { iso: string; embedded?: boolean }) {
   const [metrics, setMetrics] = useState<DailyBodyMetrics>(() => getDailyBodyMetrics(iso));
   const [editing, setEditing] = useState(() => !getDailyBodyMetrics(iso).locked);
@@ -115,7 +139,10 @@ function DailyBodyMetricsPanel({ iso, embedded }: { iso: string; embedded?: bool
 
   const hasAnyValue = METRIC_FIELDS.some((f) => metrics[f.key].trim());
   const previous = !editing ? getPreviousBodyMetrics(iso) : null;
-  const summary = formatMetricsSummary(metrics);
+  const summary =
+    metrics.locked && previous && hasAnyValue
+      ? formatMetricsSummaryWithDeltas(metrics, previous)
+      : formatMetricsSummary(metrics);
 
   return (
     <div className={`px-0 py-3 sm:py-2.5 ${embedded ? "" : "border-t border-mdc-blue/20 px-3"}`}>
@@ -164,7 +191,12 @@ function DailyBodyMetricsPanel({ iso, embedded }: { iso: string; embedded?: bool
             <p className="text-xs text-blue-200/40">No metrics saved — tap Edit to add.</p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
-              {METRIC_FIELDS.map((field) => (
+              {METRIC_FIELDS.map((field) => {
+                const delta =
+                  previous && metrics[field.key].trim() && previous.metrics[field.key].trim()
+                    ? formatMetricDelta(metrics[field.key], previous.metrics[field.key], field.unit)
+                    : null;
+                return (
                 <div key={field.key}>
                   <label className="block text-[10px] text-blue-200/60">{field.label}</label>
                   {editing ? (
@@ -193,17 +225,29 @@ function DailyBodyMetricsPanel({ iso, embedded }: { iso: string; embedded?: bool
                           <span className="text-white/30">—</span>
                         )}
                       </p>
-                      {previous && metrics[field.key].trim() && previous.metrics[field.key].trim() && (
-                        <p className="mt-0.5 text-[10px] text-blue-200/50">
-                          vs {shortDateLabel(previous.dateIso)}:{" "}
-                          {formatMetricDelta(metrics[field.key], previous.metrics[field.key], field.unit) ??
-                            "—"}
+                      {delta && (
+                        <p className="mt-0.5 text-[10px] tabular-nums text-blue-200/50">
+                          vs {shortDateLabel(previous!.dateIso)}:{" "}
+                          <span
+                            className={
+                              delta === "No change"
+                                ? "text-blue-200/50"
+                                : delta.startsWith("+")
+                                  ? "text-emerald-300"
+                                  : delta.startsWith("-")
+                                    ? "text-amber-300"
+                                    : "text-blue-200/50"
+                            }
+                          >
+                            {delta}
+                          </span>
                         </p>
                       )}
                     </div>
                   )}
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>

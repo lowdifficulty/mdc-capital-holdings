@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { PositionWithQuote, PositionsReport } from "@/lib/positions/types";
 import type { MoversReport } from "@/lib/sentiment/types";
 import { scoreColor, formatSentimentScore } from "@/components/dashboard/sentimentDisplay";
@@ -213,6 +214,7 @@ export default function PositionsPanel({
   onPositionsChange: (symbols: string[]) => void;
   onOpenSentiment: (symbol: string) => void;
 }) {
+  const router = useRouter();
   const [report, setReport] = useState<PositionsReport | null>(null);
   const [movers, setMovers] = useState<MoversReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -245,6 +247,10 @@ export default function PositionsPanel({
     setError("");
     try {
       const res = await fetch("/api/positions", { credentials: "same-origin" });
+      if (res.status === 401) {
+        router.replace("/login");
+        return;
+      }
       if (!res.ok) throw new Error("Failed to load positions");
       const data = (await res.json()) as PositionsReport;
       setReport(data);
@@ -255,7 +261,7 @@ export default function PositionsPanel({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [onPositionsChange]);
+  }, [onPositionsChange, router]);
 
   const loadMovers = useCallback(async () => {
     try {
