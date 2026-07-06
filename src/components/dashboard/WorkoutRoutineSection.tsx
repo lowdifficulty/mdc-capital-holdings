@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { subscribeWellnessSync } from "@/lib/wellness/clientSync";
 import {
   SET_COUNT,
   emptySetWeights,
@@ -85,6 +86,15 @@ function DailyBodyMetricsPanel({ iso, embedded }: { iso: string; embedded?: bool
     setMetrics(loaded);
     setEditing(!loaded.locked);
     setExpanded(!loaded.locked || !hasAny);
+  }, [iso]);
+
+  useEffect(() => {
+    return subscribeWellnessSync(() => {
+      const loaded = getDailyBodyMetrics(iso);
+      setMetrics(loaded);
+      setEditing(!loaded.locked);
+      if (loaded.locked) setExpanded(false);
+    });
   }, [iso]);
 
   function updateField(key: keyof Omit<DailyBodyMetrics, "locked">, value: string) {
@@ -326,6 +336,15 @@ export default function WorkoutRoutineSection({
     }
     setExerciseOrder(getDayExerciseOrder(iso, workout.routineId, exerciseIds));
   }, [iso, workout.routineId, exerciseIds]);
+
+  useEffect(() => {
+    return subscribeWellnessSync(() => {
+      reloadLogs();
+      if (workout.routineId && exerciseIds.length) {
+        setExerciseOrder(getDayExerciseOrder(iso, workout.routineId, exerciseIds));
+      }
+    });
+  }, [iso, workout.routineId, exerciseIds, reloadLogs]);
 
   const orderedExerciseIds = useMemo(() => {
     if (!exerciseOrder.length) return [DAILY_CARDIO_ID, ...exerciseIds];

@@ -27,6 +27,7 @@ import type {
 } from "@/lib/sentiment/types";
 import { readMoversCache, writeMoversCache, clearMoversCache } from "@/lib/dashboard/moversCache";
 import { useQuiverSync } from "@/hooks/useQuiverSync";
+import { useWellnessSync } from "@/hooks/useWellnessSync";
 
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
@@ -257,6 +258,7 @@ function reportCacheKey(symbol: string, period: SentimentPeriod): string {
 
 export default function SentimentDashboard() {
   const router = useRouter();
+  const { refreshToken: wellnessSyncToken } = useWellnessSync();
   const [mainTab, setMainTab] = useState<MainTab>("health");
   const [financeView, setFinanceView] = useState<FinanceView>("positions");
   const view: DashboardView = dashboardViewForTab(mainTab, financeView);
@@ -764,7 +766,7 @@ export default function SentimentDashboard() {
 
         <div className={mainTab === "health" ? undefined : "hidden"} aria-hidden={mainTab !== "health"}>
           <div className="max-w-3xl sm:max-w-none">
-            <PeptideCalendarPanel />
+            <PeptideCalendarPanel syncToken={wellnessSyncToken} />
           </div>
         </div>
 

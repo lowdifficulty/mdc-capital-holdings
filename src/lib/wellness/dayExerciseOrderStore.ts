@@ -1,3 +1,5 @@
+import { markWellnessDirty } from "@/lib/wellness/syncNotify";
+
 /** Cardio row id — always part of the daily workout checklist. */
 export const DAILY_CARDIO_ID = "daily-cardio";
 
@@ -20,6 +22,7 @@ function readAll(): Record<string, string[]> {
 
 function writeAll(data: Record<string, string[]>): void {
   localStorage.setItem(ORDER_KEY, JSON.stringify(data));
+  markWellnessDirty();
 }
 
 function normalizeOrder(stored: string[], defaultIds: string[]): string[] {

@@ -27,6 +27,7 @@
 /data/prices.json
 /data/quiver/
 /data/quiver/.api-key
+/data/wellness/
 
 # debug
 npm-debug.log*

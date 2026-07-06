@@ -1,3 +1,5 @@
+import { markWellnessDirty } from "@/lib/wellness/syncNotify";
+
 const WORKOUT_LOG_KEY = "mdc-workout-exercise-logs";
 
 export const SET_COUNT = 4;
@@ -41,6 +43,7 @@ function readAll(): LogStore {
 
 function writeAll(data: LogStore): void {
   localStorage.setItem(WORKOUT_LOG_KEY, JSON.stringify(data));
+  markWellnessDirty();
 }
 
 export function getExerciseLog(dateIso: string, exerciseId: string): ExerciseLog {
@@ -151,6 +154,7 @@ function readMetrics(): MetricsStore {
 
 function writeMetrics(data: MetricsStore): void {
   localStorage.setItem(DAILY_METRICS_KEY, JSON.stringify(data));
+  markWellnessDirty();
 }
 
 function readLegacyWeights(): Record<string, string> {

@@ -387,6 +387,7 @@ function DayDetailModal({
   onToggleCardio,
   onJournalUpdate,
   onClose,
+  syncToken,
 }: {
   iso: string;
   doses: ScheduledDose[];
@@ -402,6 +403,7 @@ function DayDetailModal({
   onToggleCardio: (dateIso: string) => void;
   onJournalUpdate: () => void;
   onClose: () => void;
+  syncToken: number;
 }) {
   const [journal, setJournal] = useState<DayJournal>(() => getDayJournal(iso));
   const [todoDraft, setTodoDraft] = useState("");
@@ -469,7 +471,11 @@ function DayDetailModal({
     setCustodyTodoDraft("");
     setNoteEditing(!loaded.noteLocked);
     setOpenSections({});
-  }, [iso]);
+  }, [iso, syncToken]);
+
+  useEffect(() => {
+    setSectionOrder(getDaySectionOrder());
+  }, [syncToken]);
 
   function toggleSection(id: string) {
     setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -894,7 +900,7 @@ function DayDetailModal({
   );
 }
 
-export default function PeptideCalendarPanel() {
+export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: number }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -907,6 +913,14 @@ export default function PeptideCalendarPanel() {
   const [journalTick, setJournalTick] = useState(0);
 
   const bumpJournal = useCallback(() => setJournalTick((t) => t + 1), []);
+
+  useEffect(() => {
+    setCompleted(getPeptideCompleted());
+    setMealsCompleted(getMealCompleted());
+    setWorkoutsCompleted(getWorkoutCompleted());
+    setCardioCompleted(getCardioCompleted());
+    setJournalTick((t) => t + 1);
+  }, [syncToken]);
 
   const cells = useMemo(() => monthGrid(year, month), [year, month]);
 
@@ -1192,6 +1206,7 @@ export default function PeptideCalendarPanel() {
           onToggleCardio={toggleCardio}
           onJournalUpdate={bumpJournal}
           onClose={() => setSelectedDate(null)}
+          syncToken={syncToken}
         />
       )}
     </div>

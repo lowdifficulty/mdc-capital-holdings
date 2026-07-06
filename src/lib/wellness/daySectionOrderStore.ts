@@ -1,3 +1,5 @@
+import { markWellnessDirty } from "@/lib/wellness/syncNotify";
+
 const ORDER_KEY = "mdc-day-section-order";
 
 export type DaySectionId = "custody" | "workout" | "meal" | "todo" | "peptides" | "notes";
@@ -43,6 +45,7 @@ export function getDaySectionOrder(): DaySectionId[] {
 
 export function saveDaySectionOrder(order: DaySectionId[]): void {
   localStorage.setItem(ORDER_KEY, JSON.stringify(normalizeOrder(order)));
+  markWellnessDirty();
 }
 
 export function reorderDaySections(

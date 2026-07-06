@@ -1,3 +1,5 @@
+import { markWellnessDirty } from "@/lib/wellness/syncNotify";
+
 const PEPTIDE_KEY = "mdc-peptide-checkoffs";
 const WORKOUT_KEY = "mdc-workout-checkoffs";
 const CARDIO_KEY = "mdc-cardio-checkoffs";
@@ -18,6 +20,7 @@ function readSet(key: string): Set<string> {
 
 function writeSet(key: string, ids: Set<string>): void {
   localStorage.setItem(key, JSON.stringify([...ids]));
+  markWellnessDirty();
 }
 
 export function getPeptideCompleted(): Set<string> {

@@ -1,3 +1,5 @@
+import { markWellnessDirty } from "@/lib/wellness/syncNotify";
+
 const JOURNAL_KEY = "mdc-day-journals";
 
 export interface DayTodo {
@@ -59,6 +61,7 @@ function readAll(): Record<string, DayJournal> {
 
 function writeAll(data: Record<string, DayJournal>): void {
   localStorage.setItem(JOURNAL_KEY, JSON.stringify(data));
+  markWellnessDirty();
 }
 
 function ensure(data: Record<string, DayJournal>, dateIso: string): DayJournal {
