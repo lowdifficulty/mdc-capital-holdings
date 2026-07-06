@@ -16,6 +16,12 @@ import {
   type DailyBodyMetrics,
   type ExerciseLog,
 } from "@/lib/wellness/workoutLogStore";
+import { DAILY_CARDIO_LABEL } from "@/lib/wellness/completionStore";
+import {
+  DAILY_CARDIO_ID,
+  getDayExerciseOrder,
+  reorderDayExercises,
+} from "@/lib/wellness/dayExerciseOrderStore";
 import { WORKOUT_ROUTINES } from "@/lib/wellness/workoutRoutines";
 import type { WorkoutDay } from "@/lib/wellness/workoutSchedule";
 
@@ -276,7 +282,9 @@ interface WorkoutRoutineSectionProps {
   iso: string;
   workout: WorkoutDay;
   workoutDone: boolean;
+  cardioDone: boolean;
   onToggleWorkout: (dateIso: string) => void;
+  onToggleCardio: (dateIso: string) => void;
   embedded?: boolean;
 }
 
@@ -284,7 +292,9 @@ export default function WorkoutRoutineSection({
   iso,
   workout,
   workoutDone,
+  cardioDone,
   onToggleWorkout,
+  onToggleCardio,
   embedded = false,
 }: WorkoutRoutineSectionProps) {
   const [open, setOpen] = useState(false);
@@ -292,6 +302,9 @@ export default function WorkoutRoutineSection({
   const exerciseIds = useMemo(() => routine?.exercises.map((e) => e.id) ?? [], [routine]);
 
   const [logs, setLogs] = useState<Record<string, ExerciseLog>>({});
+  const [exerciseOrder, setExerciseOrder] = useState<string[]>([]);
+  const [dragExerciseId, setDragExerciseId] = useState<string | null>(null);
+  const [dragOverExerciseId, setDragOverExerciseId] = useState<string | null>(null);
 
   const reloadLogs = useCallback(() => {
     if (!exerciseIds.length) {
@@ -306,12 +319,35 @@ export default function WorkoutRoutineSection({
     if (!embedded) setOpen(false);
   }, [iso, reloadLogs, embedded]);
 
+  useEffect(() => {
+    if (!workout.routineId || !exerciseIds.length) {
+      setExerciseOrder([]);
+      return;
+    }
+    setExerciseOrder(getDayExerciseOrder(iso, workout.routineId, exerciseIds));
+  }, [iso, workout.routineId, exerciseIds]);
+
+  const orderedExerciseIds = useMemo(() => {
+    if (!exerciseOrder.length) return [DAILY_CARDIO_ID, ...exerciseIds];
+    return exerciseOrder;
+  }, [exerciseOrder, exerciseIds]);
+
+  function handleExerciseDrop(targetId: string) {
+    if (!workout.routineId || !dragExerciseId || dragExerciseId === targetId) return;
+    const next = reorderDayExercises(iso, workout.routineId, exerciseIds, dragExerciseId, targetId);
+    setExerciseOrder(next);
+    setDragExerciseId(null);
+    setDragOverExerciseId(null);
+  }
+
   const doneCount = exerciseIds.filter((id) => logs[id]?.done).length;
   const total = exerciseIds.length;
+  const checklistDone = doneCount + (cardioDone ? 1 : 0);
+  const checklistTotal = total + 1;
 
-  function syncWorkoutDone(nextLogs: Record<string, ExerciseLog>) {
+  function syncWorkoutDone(nextLogs: Record<string, ExerciseLog>, cardio: boolean) {
     if (!exerciseIds.length) return;
-    const allDone = exerciseIds.every((id) => nextLogs[id]?.done);
+    const allDone = exerciseIds.every((id) => nextLogs[id]?.done) && cardio;
     if (allDone && !workoutDone) onToggleWorkout(iso);
     else if (!allDone && workoutDone) onToggleWorkout(iso);
   }
@@ -320,7 +356,13 @@ export default function WorkoutRoutineSection({
     toggleExerciseDone(iso, exerciseId);
     const next = getExerciseLogsForDay(iso, exerciseIds);
     setLogs(next);
-    syncWorkoutDone(next);
+    syncWorkoutDone(next, cardioDone);
+  }
+
+  function handleToggleCardio() {
+    onToggleCardio(iso);
+    const nextCardio = !cardioDone;
+    syncWorkoutDone(logs, nextCardio);
   }
 
   function handleSetsChange(exerciseId: string, setWeights: string[]) {
@@ -332,30 +374,120 @@ export default function WorkoutRoutineSection({
 
   const exerciseList = routine ? (
     <ul className="space-y-2">
-      {routine.exercises.map((ex) => {
+      {orderedExerciseIds.map((itemId) => {
+        const dragShell =
+          dragExerciseId === itemId ? "opacity-50" : dragOverExerciseId === itemId ? "ring-2 ring-mdc-blue/40" : "";
+
+        if (itemId === DAILY_CARDIO_ID) {
+          return (
+            <li
+              key={itemId}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragExerciseId && dragExerciseId !== itemId) setDragOverExerciseId(itemId);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                handleExerciseDrop(itemId);
+              }}
+              className={`rounded-xl border border-mdc-blue/15 bg-mdc-blue/5 p-3 transition ${dragShell}`}
+            >
+              <div className="flex items-start gap-2 sm:gap-3">
+                <button
+                  type="button"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/plain", itemId);
+                    setDragExerciseId(itemId);
+                  }}
+                  onDragEnd={() => {
+                    setDragExerciseId(null);
+                    setDragOverExerciseId(null);
+                  }}
+                  className="touch-manipulation mt-0.5 flex h-8 w-6 shrink-0 cursor-grab items-center justify-center text-white/30 active:cursor-grabbing active:text-white/50"
+                  aria-label="Drag to reorder cardio"
+                >
+                  <span className="text-sm leading-none tracking-tighter">⋮⋮</span>
+                </button>
+                <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={cardioDone}
+                    onChange={handleToggleCardio}
+                    className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-mdc-blue"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <span
+                      className={`block text-base font-semibold leading-snug sm:text-sm ${cardioDone ? "text-white/40 line-through" : "text-white"}`}
+                    >
+                      {DAILY_CARDIO_LABEL}
+                    </span>
+                    <span className={`mt-0.5 block text-sm sm:text-xs ${cardioDone ? "text-white/30" : "text-white/50"}`}>
+                      Steady-state or intervals — any modality
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </li>
+          );
+        }
+
+        const ex = routine.exercises.find((e) => e.id === itemId);
+        if (!ex) return null;
         const log = logs[ex.id] ?? { done: false, setWeights: emptySetWeights() };
         return (
-          <li key={ex.id} className="rounded-xl border border-mdc-blue/15 bg-mdc-blue/5 p-3">
-            <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={log.done}
-                onChange={() => handleToggleExercise(ex.id)}
-                className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-mdc-blue"
-              />
-              <div className="min-w-0 flex-1">
-                <span className={`block text-base font-semibold leading-snug sm:text-sm ${log.done ? "text-white/40 line-through" : "text-white"}`}>
-                  {ex.name}
-                </span>
-                <span className={`mt-0.5 block text-sm sm:text-xs ${log.done ? "text-white/30" : "text-white/50"}`}>
-                  {ex.setsReps}
-                </span>
-                <ExerciseSetInputs
-                  iso={iso}
-                  exerciseId={ex.id}
-                  log={log}
-                  onSetsChange={handleSetsChange}
+          <li
+            key={ex.id}
+            onDragOver={(e) => {
+              e.preventDefault();
+              if (dragExerciseId && dragExerciseId !== ex.id) setDragOverExerciseId(ex.id);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              handleExerciseDrop(ex.id);
+            }}
+            className={`rounded-xl border border-mdc-blue/15 bg-mdc-blue/5 p-3 transition ${dragShell}`}
+          >
+            <div className="flex items-start gap-2 sm:gap-3">
+              <button
+                type="button"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", ex.id);
+                  setDragExerciseId(ex.id);
+                }}
+                onDragEnd={() => {
+                  setDragExerciseId(null);
+                  setDragOverExerciseId(null);
+                }}
+                className="touch-manipulation mt-0.5 flex h-8 w-6 shrink-0 cursor-grab items-center justify-center text-white/30 active:cursor-grabbing active:text-white/50"
+                aria-label={`Drag to reorder ${ex.name}`}
+              >
+                <span className="text-sm leading-none tracking-tighter">⋮⋮</span>
+              </button>
+              <div className="flex min-w-0 flex-1 items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={log.done}
+                  onChange={() => handleToggleExercise(ex.id)}
+                  className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-mdc-blue"
                 />
+                <div className="min-w-0 flex-1">
+                  <span className={`block text-base font-semibold leading-snug sm:text-sm ${log.done ? "text-white/40 line-through" : "text-white"}`}>
+                    {ex.name}
+                  </span>
+                  <span className={`mt-0.5 block text-sm sm:text-xs ${log.done ? "text-white/30" : "text-white/50"}`}>
+                    {ex.setsReps}
+                  </span>
+                  <ExerciseSetInputs
+                    iso={iso}
+                    exerciseId={ex.id}
+                    log={log}
+                    onSetsChange={handleSetsChange}
+                  />
+                </div>
               </div>
             </div>
           </li>
@@ -392,7 +524,7 @@ export default function WorkoutRoutineSection({
         <p className="text-base font-bold">{workout.label}</p>
         <p className="mt-0.5 text-sm opacity-80">{routine.title}</p>
         <p className="mt-1 text-xs opacity-60">
-          {doneCount}/{total} exercises
+          {checklistDone}/{checklistTotal} items
           {workoutDone && " · Complete"}
         </p>
         <DailyBodyMetricsPanel iso={iso} embedded />
@@ -414,7 +546,7 @@ export default function WorkoutRoutineSection({
           <p className="mt-1 text-base font-bold sm:text-lg">{workout.label}</p>
           <p className="mt-0.5 text-sm opacity-80">{routine.title}</p>
           <p className="mt-1 text-xs opacity-60">
-            {doneCount}/{total} exercises
+            {checklistDone}/{checklistTotal} items
             {workoutDone && " · Complete"}
           </p>
         </div>

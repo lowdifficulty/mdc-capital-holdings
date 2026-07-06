@@ -1,6 +1,9 @@
 const PEPTIDE_KEY = "mdc-peptide-checkoffs";
 const WORKOUT_KEY = "mdc-workout-checkoffs";
+const CARDIO_KEY = "mdc-cardio-checkoffs";
 const MEAL_KEY = "mdc-meal-checkoffs";
+
+export const DAILY_CARDIO_LABEL = "30 minutes of cardio";
 
 function readSet(key: string): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -38,6 +41,18 @@ export function toggleWorkoutCompleted(dateIso: string): Set<string> {
   if (set.has(dateIso)) set.delete(dateIso);
   else set.add(dateIso);
   writeSet(WORKOUT_KEY, set);
+  return set;
+}
+
+export function getCardioCompleted(): Set<string> {
+  return readSet(CARDIO_KEY);
+}
+
+export function toggleCardioCompleted(dateIso: string): Set<string> {
+  const set = readSet(CARDIO_KEY);
+  if (set.has(dateIso)) set.delete(dateIso);
+  else set.add(dateIso);
+  writeSet(CARDIO_KEY, set);
   return set;
 }
 

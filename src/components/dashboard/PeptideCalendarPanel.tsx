@@ -4,35 +4,40 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { createPortal } from "react-dom";
 import {
   SYRINGE_REFERENCE,
-  dayDoseSummary,
   generateDosesForDate,
   type ScheduledDose,
 } from "@/lib/wellness/peptideSchedule";
-import { getPeptideCompleted, getMealCompleted, getWorkoutCompleted, togglePeptideCompleted, toggleMealCompleted, toggleWorkoutCompleted } from "@/lib/wellness/completionStore";
+import { getPeptideCompleted, getMealCompleted, getWorkoutCompleted, getCardioCompleted, togglePeptideCompleted, toggleMealCompleted, toggleWorkoutCompleted, toggleCardioCompleted } from "@/lib/wellness/completionStore";
+import { getExerciseLogsForDay } from "@/lib/wellness/workoutLogStore";
+import { WORKOUT_ROUTINES } from "@/lib/wellness/workoutRoutines";
 import {
   DAILY_INGREDIENTS,
   DAILY_MACROS,
   mealsForDate,
   type ScheduledMeal,
 } from "@/lib/wellness/mealPlan";
-import { custodyLabel, custodyShortLabel, isCustodyDay } from "@/lib/wellness/custodySchedule";
+import { custodyShortLabel, isCustodyDay } from "@/lib/wellness/custodySchedule";
 import {
+  addCustodyTodo,
   addDayTodo,
-  dayHasJournalActivity,
+  dayJournalOpenCustodyTodos,
   dayJournalOpenTodos,
   getDayJournal,
+  kickCustodyTodo,
   kickDayTodo,
+  removeCustodyTodo,
   removeDayTodo,
+  reorderCustodyTodos,
   reorderDayTodos,
   saveDayNote,
   saveDaySectionPlanNote,
+  toggleCustodyTodo,
   toggleDayTodo,
   type DayJournal,
   type DayTodo,
   type PlanNoteSectionId,
 } from "@/lib/wellness/dayJournalStore";
 import {
-  WORKOUT_CELL_TEXT,
   workoutForDate,
   type WorkoutDay,
 } from "@/lib/wellness/workoutSchedule";
@@ -48,6 +53,73 @@ import WorkoutRoutineSection from "@/components/dashboard/WorkoutRoutineSection"
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 const WEEKDAYS_SHORT = ["M", "T", "W", "T", "F", "S", "S"] as const;
+
+type DaySectionSummary = {
+  title: string;
+  done: number;
+  total: number;
+};
+
+function buildDaySectionSummaries(opts: {
+  iso: string;
+  workout: WorkoutDay | null;
+  doses: ScheduledDose[];
+  meals: ScheduledMeal[];
+  journal: DayJournal;
+  peptideCompleted: Set<string>;
+  mealCompleted: Set<string>;
+  cardioDone: boolean;
+}): DaySectionSummary[] {
+  const { iso, workout, doses, meals, journal, peptideCompleted, mealCompleted, cardioDone } = opts;
+  const sectionOrder = visibleDaySectionOrder(getDaySectionOrder(), {
+    hasWorkout: !!workout,
+    hasPeptides: doses.length > 0,
+    hasCustody: isCustodyDay(iso),
+  });
+  const summaries: DaySectionSummary[] = [];
+
+  for (const sectionId of sectionOrder) {
+    switch (sectionId) {
+      case "custody": {
+        if (journal.custodyTodos.length === 0) break;
+        const done = journal.custodyTodos.filter((t) => t.done).length;
+        summaries.push({ title: "David and Charles", done, total: journal.custodyTodos.length });
+        break;
+      }
+      case "workout": {
+        if (!workout || workout.type === "rest" || !workout.routineId) break;
+        const routine = WORKOUT_ROUTINES[workout.routineId];
+        const exerciseIds = routine.exercises.map((e) => e.id);
+        const logs = getExerciseLogsForDay(iso, exerciseIds);
+        const exercisesDone = exerciseIds.filter((id) => logs[id]?.done).length;
+        const done = exercisesDone + (cardioDone ? 1 : 0);
+        const total = exerciseIds.length + 1;
+        summaries.push({ title: "Workout", done, total });
+        break;
+      }
+      case "meal": {
+        if (meals.length === 0) break;
+        const done = meals.filter((m) => mealCompleted.has(m.id)).length;
+        summaries.push({ title: "Meal", done, total: meals.length });
+        break;
+      }
+      case "todo": {
+        if (journal.todos.length === 0) break;
+        const done = journal.todos.filter((t) => t.done).length;
+        summaries.push({ title: "To Do", done, total: journal.todos.length });
+        break;
+      }
+      case "peptides": {
+        if (doses.length === 0) break;
+        const done = doses.filter((d) => peptideCompleted.has(d.id)).length;
+        summaries.push({ title: "Peptides", done, total: doses.length });
+        break;
+      }
+    }
+  }
+
+  return summaries;
+}
 
 function formatIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -89,6 +161,7 @@ function DaySectionDropdown({
   onToggle,
   done = false,
   planNote,
+  planNotePlaceholder,
   onPlanNoteChange,
   onPlanNoteBlur,
   sectionId,
@@ -106,6 +179,7 @@ function DaySectionDropdown({
   onToggle: () => void;
   done?: boolean;
   planNote?: string;
+  planNotePlaceholder?: string;
   onPlanNoteChange?: (value: string) => void;
   onPlanNoteBlur?: () => void;
   sectionId?: DaySectionId;
@@ -181,6 +255,7 @@ function DaySectionDropdown({
                   onChange={(e) => onPlanNoteChange(e.target.value)}
                   onBlur={onPlanNoteBlur}
                   onClick={(e) => e.stopPropagation()}
+                  placeholder={planNotePlaceholder}
                   className={`w-full rounded-md border bg-transparent px-2 py-1 text-xs text-white outline-none focus:ring-1 sm:text-sm ${noteBorder} ${noteFocus}`}
                 />
               )}
@@ -204,20 +279,24 @@ function DaySectionDropdown({
 }
 
 function DayTodoList({
-  iso,
   todos,
-  onUpdate,
+  onToggle,
+  onRemove,
+  onKick,
+  onReorder,
 }: {
-  iso: string;
   todos: DayTodo[];
-  onUpdate: (journal: DayJournal) => void;
+  onToggle: (todoId: string) => void;
+  onRemove: (todoId: string) => void;
+  onKick: (todoId: string) => void;
+  onReorder: (draggedId: string, targetId: string) => void;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
   function handleDrop(targetId: string) {
     if (!dragId || dragId === targetId) return;
-    onUpdate(reorderDayTodos(iso, dragId, targetId));
+    onReorder(dragId, targetId);
     setDragId(null);
     setOverId(null);
   }
@@ -260,7 +339,7 @@ function DayTodoList({
             <input
               type="checkbox"
               checked={todo.done}
-              onChange={() => onUpdate(toggleDayTodo(iso, todo.id))}
+              onChange={() => onToggle(todo.id)}
               className="mt-0.5 h-5 w-5 shrink-0 rounded border-white/30 accent-violet-500"
             />
             <span
@@ -272,7 +351,7 @@ function DayTodoList({
           <div className="flex shrink-0 gap-2 pl-14 sm:pl-0">
             <button
               type="button"
-              onClick={() => onUpdate(kickDayTodo(iso, todo.id))}
+              onClick={() => onKick(todo.id)}
               className="touch-manipulation min-h-[36px] flex-1 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-white/60 active:bg-white/10 sm:flex-none sm:px-2 sm:py-0.5 sm:text-[10px] sm:uppercase sm:tracking-wide"
               title="Add to tomorrow's to-do list"
             >
@@ -280,7 +359,7 @@ function DayTodoList({
             </button>
             <button
               type="button"
-              onClick={() => onUpdate(removeDayTodo(iso, todo.id))}
+              onClick={() => onRemove(todo.id)}
               className="touch-manipulation flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg border border-white/15 text-sm text-white/50 active:bg-white/10 hover:text-red-300 sm:min-w-0 sm:border-0"
               aria-label="Remove task"
             >
@@ -299,11 +378,13 @@ function DayDetailModal({
   meals,
   workout,
   workoutDone,
+  cardioDone,
   peptideCompleted,
   mealCompleted,
   onTogglePeptide,
   onToggleMeal,
   onToggleWorkout,
+  onToggleCardio,
   onJournalUpdate,
   onClose,
 }: {
@@ -312,44 +393,51 @@ function DayDetailModal({
   meals: ScheduledMeal[];
   workout: WorkoutDay | null;
   workoutDone: boolean;
+  cardioDone: boolean;
   peptideCompleted: Set<string>;
   mealCompleted: Set<string>;
   onTogglePeptide: (id: string) => void;
   onToggleMeal: (id: string) => void;
   onToggleWorkout: (dateIso: string) => void;
+  onToggleCardio: (dateIso: string) => void;
   onJournalUpdate: () => void;
   onClose: () => void;
 }) {
   const [journal, setJournal] = useState<DayJournal>(() => getDayJournal(iso));
   const [todoDraft, setTodoDraft] = useState("");
+  const [custodyTodoDraft, setCustodyTodoDraft] = useState("");
   const [noteEditing, setNoteEditing] = useState(() => !getDayJournal(iso).noteLocked);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [sectionOrder, setSectionOrder] = useState<DaySectionId[]>(() => getDaySectionOrder());
   const [dragSectionId, setDragSectionId] = useState<DaySectionId | null>(null);
   const [dragOverSectionId, setDragOverSectionId] = useState<DaySectionId | null>(null);
   const [portalReady, setPortalReady] = useState(false);
-  const custody = custodyLabel(iso);
+  const isCustody = isCustodyDay(iso);
   const programDay = isProgramDay(iso);
   const dosesDone = doses.filter((d) => peptideCompleted.has(d.id)).length;
   const mealsDone = meals.filter((m) => mealCompleted.has(m.id)).length;
   const todosDone = journal.todos.filter((t) => t.done).length;
   const openTodos = journal.todos.length - todosDone;
+  const custodyTodosDone = journal.custodyTodos.filter((t) => t.done).length;
+  const openCustodyTodos = journal.custodyTodos.length - custodyTodosDone;
 
   const workoutSectionDone = workout
     ? workout.type === "rest" || workoutDone
     : false;
   const mealSectionDone = meals.length > 0 && mealsDone === meals.length;
   const todoSectionDone = journal.todos.length > 0 && openTodos === 0;
+  const custodySectionDone = journal.custodyTodos.length > 0 && openCustodyTodos === 0;
   const peptideSectionDone = doses.length > 0 && dosesDone === doses.length;
-  const notesSectionDone = !!journal.noteLocked && journal.note.trim().length > 0;
+  const notesSectionDone = true;
 
   const visibleSectionOrder = useMemo(
     () =>
       visibleDaySectionOrder(sectionOrder, {
         hasWorkout: !!workout,
         hasPeptides: doses.length > 0,
+        hasCustody: isCustody,
       }),
-    [sectionOrder, workout, doses.length]
+    [sectionOrder, workout, doses.length, isCustody]
   );
 
   const dragProps = {
@@ -378,6 +466,7 @@ function DayDetailModal({
     const loaded = getDayJournal(iso);
     setJournal(loaded);
     setTodoDraft("");
+    setCustodyTodoDraft("");
     setNoteEditing(!loaded.noteLocked);
     setOpenSections({});
   }, [iso]);
@@ -443,6 +532,13 @@ function DayDetailModal({
     setTodoDraft("");
   }
 
+  function handleAddCustodyTodo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!custodyTodoDraft.trim()) return;
+    updateJournal(addCustodyTodo(iso, custodyTodoDraft));
+    setCustodyTodoDraft("");
+  }
+
   function withDrag(id: DaySectionId) {
     return {
       sectionId: id,
@@ -458,6 +554,49 @@ function DayDetailModal({
 
   function renderDaySection(id: DaySectionId): ReactNode {
     switch (id) {
+      case "custody":
+        if (!isCustody) return null;
+        return (
+          <DaySectionDropdown
+            key={id}
+            title="David and Charles"
+            open={!!openSections.custody}
+            onToggle={() => toggleSection("custody")}
+            done={custodySectionDone}
+            {...planNoteProps("custody")}
+            {...withDrag(id)}
+          >
+            <form onSubmit={handleAddCustodyTodo} className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={custodyTodoDraft}
+                onChange={(e) => setCustodyTodoDraft(e.target.value)}
+                placeholder="Add a task…"
+                className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-base text-white placeholder:text-white/30 outline-none focus:border-mdc-blue/50 sm:text-sm"
+              />
+              <button
+                type="submit"
+                disabled={!custodyTodoDraft.trim()}
+                className="touch-manipulation min-h-[44px] shrink-0 rounded-xl bg-mdc-blue px-4 py-2.5 text-sm font-semibold text-white hover:bg-white hover:text-navy active:opacity-90 disabled:opacity-40 sm:py-2"
+              >
+                Add
+              </button>
+            </form>
+            {journal.custodyTodos.length > 0 ? (
+              <DayTodoList
+                todos={journal.custodyTodos}
+                onToggle={(todoId) => updateJournal(toggleCustodyTodo(iso, todoId))}
+                onRemove={(todoId) => updateJournal(removeCustodyTodo(iso, todoId))}
+                onKick={(todoId) => updateJournal(kickCustodyTodo(iso, todoId))}
+                onReorder={(draggedId, targetId) =>
+                  updateJournal(reorderCustodyTodos(iso, draggedId, targetId))
+                }
+              />
+            ) : (
+              <p className="mt-2 text-xs text-white/35">No tasks yet.</p>
+            )}
+          </DaySectionDropdown>
+        );
       case "workout":
         if (!workout) return null;
         return (
@@ -474,7 +613,9 @@ function DayDetailModal({
               iso={iso}
               workout={workout}
               workoutDone={workoutDone}
+              cardioDone={cardioDone}
               onToggleWorkout={onToggleWorkout}
+              onToggleCardio={onToggleCardio}
               embedded
             />
           </DaySectionDropdown>
@@ -561,7 +702,15 @@ function DayDetailModal({
               </button>
             </form>
             {journal.todos.length > 0 ? (
-              <DayTodoList iso={iso} todos={journal.todos} onUpdate={updateJournal} />
+              <DayTodoList
+                todos={journal.todos}
+                onToggle={(todoId) => updateJournal(toggleDayTodo(iso, todoId))}
+                onRemove={(todoId) => updateJournal(removeDayTodo(iso, todoId))}
+                onKick={(todoId) => updateJournal(kickDayTodo(iso, todoId))}
+                onReorder={(draggedId, targetId) =>
+                  updateJournal(reorderDayTodos(iso, draggedId, targetId))
+                }
+              />
             ) : (
               <p className="mt-2 text-xs text-white/35">No tasks yet.</p>
             )}
@@ -670,68 +819,69 @@ function DayDetailModal({
 
   return createPortal(
     <div
-      className="fixed inset-x-0 bottom-0 top-[var(--dashboard-menu-h)] z-50 flex items-start justify-center bg-black/60 sm:inset-0 sm:z-[70] sm:items-center sm:justify-center sm:p-4"
+      className="fixed inset-x-0 bottom-0 top-[var(--dashboard-menu-h)] z-50 flex items-start justify-center bg-black/70 sm:inset-0 sm:z-[70] sm:items-center sm:justify-center sm:p-4"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className="flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden rounded-b-2xl border border-white/10 border-t-0 bg-navy shadow-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:border-t"
+        className="dashboard-wayne relative flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden rounded-b-2xl border border-[#c9a227]/20 border-t-0 bg-[#050505] text-[#eae6dc] shadow-2xl shadow-black/60 sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:border-t"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-labelledby="day-detail-title"
         aria-modal="true"
       >
-        <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-white/10 bg-navy px-4 py-3 sm:px-5 sm:py-4 sm:pt-[max(0.75rem,env(safe-area-inset-top))]">
-          <div className="min-w-0 flex-1">
-            <h3 id="day-detail-title" className="text-base font-semibold leading-snug text-white sm:text-lg">
+        <div className="pointer-events-none absolute inset-0 dashboard-wayne-texture rounded-b-2xl sm:rounded-2xl" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 dashboard-wayne-gold-wash rounded-b-2xl sm:rounded-2xl" aria-hidden />
+        <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-[#c9a227]/15 bg-[#050505]/95 px-4 py-3 backdrop-blur-md sm:px-5 sm:py-4 sm:pt-[max(0.75rem,env(safe-area-inset-top))]">
+          <div className="relative min-w-0 flex-1">
+            <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
+              Command center
+            </p>
+            <h3 id="day-detail-title" className="font-serif text-base leading-snug text-[#f8f4ec] sm:text-lg">
               {dayLabel(iso)}
             </h3>
             {programDay && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {doses.length > 0 && (
-                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/60 sm:text-xs">
-                    {dosesDone}/{doses.length} doses
+                  <span className="rounded-sm border border-[#c9a227]/20 bg-[#c9a227]/10 px-2 py-0.5 text-[10px] tabular-nums text-[#eae6dc]/75 sm:text-xs">
+                    Peptides {dosesDone}/{doses.length}
                   </span>
                 )}
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/60 sm:text-xs">
-                  {mealsDone}/{meals.length} meals
-                </span>
+                {meals.length > 0 && (
+                  <span className="rounded-sm border border-[#c9a227]/20 bg-[#c9a227]/10 px-2 py-0.5 text-[10px] tabular-nums text-[#eae6dc]/75 sm:text-xs">
+                    Meal {mealsDone}/{meals.length}
+                  </span>
+                )}
                 {workout && workout.type !== "rest" && (
-                  <span className="rounded-full bg-mdc-blue/20 px-2 py-0.5 text-[10px] text-blue-200 sm:text-xs">
-                    {workoutDone ? "Workout ✓" : workout.label}
+                  <span className="rounded-sm border border-[#c9a227]/20 bg-[#c9a227]/10 px-2 py-0.5 text-[10px] text-[#eae6dc]/75 sm:text-xs">
+                    {workoutDone ? "Workout complete" : workout.label}
                   </span>
                 )}
                 {journal.todos.length > 0 && (
-                  <span className="rounded-full bg-violet-500/20 px-2 py-0.5 text-[10px] text-violet-200 sm:text-xs">
-                    {openTodos === 0 ? "Todos done" : `${openTodos} todo${openTodos === 1 ? "" : "s"}`}
+                  <span className="rounded-sm border border-[#c9a227]/20 bg-[#c9a227]/10 px-2 py-0.5 text-[10px] tabular-nums text-[#eae6dc]/75 sm:text-xs">
+                    To Do {todosDone}/{journal.todos.length}
                   </span>
                 )}
               </div>
             )}
             {!programDay && (
-              <p className="mt-1 text-xs text-white/50">Before program start</p>
+              <p className="mt-1 text-xs text-[#eae6dc]/50">Before program start</p>
             )}
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="touch-manipulation shrink-0 rounded-full border border-white/20 px-4 py-2 text-sm font-semibold text-white/70 hover:border-white/40 active:bg-white/10"
+            className="relative touch-manipulation shrink-0 rounded-sm border border-[#c9a227]/35 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:border-[#c9a227] hover:text-[#c9a227] active:bg-[#c9a227]/10"
           >
             Close
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5">
+        <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5">
         {!programDay ? (
           <p className="mt-6 text-sm text-white/40">Plan starts {dayLabel(PROGRAM_START)}.</p>
         ) : (
           <>
-        {custody && (
-          <div className="mb-4 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2.5 text-sm text-sky-100">
-            {custody}
-          </div>
-        )}
-
         <div className="space-y-3">
           {visibleSectionOrder.map((id) => renderDaySection(id))}
         </div>
@@ -753,6 +903,7 @@ export default function PeptideCalendarPanel() {
   const [completed, setCompleted] = useState<Set<string>>(() => getPeptideCompleted());
   const [mealsCompleted, setMealsCompleted] = useState<Set<string>>(() => getMealCompleted());
   const [workoutsCompleted, setWorkoutsCompleted] = useState<Set<string>>(() => getWorkoutCompleted());
+  const [cardioCompleted, setCardioCompleted] = useState<Set<string>>(() => getCardioCompleted());
   const [journalTick, setJournalTick] = useState(0);
 
   const bumpJournal = useCallback(() => setJournalTick((t) => t + 1), []);
@@ -791,6 +942,10 @@ export default function PeptideCalendarPanel() {
 
   const toggleWorkout = useCallback((dateIso: string) => {
     setWorkoutsCompleted(toggleWorkoutCompleted(dateIso));
+  }, []);
+
+  const toggleCardio = useCallback((dateIso: string) => {
+    setCardioCompleted(toggleCardioCompleted(dateIso));
   }, []);
 
   const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", {
@@ -880,31 +1035,51 @@ export default function PeptideCalendarPanel() {
             }
 
             const doses = dosesByDay.get(iso) ?? [];
-            const summary = dayDoseSummary(doses);
             const dayMeals = mealsForDate(iso);
             const workout = workoutForDate(iso);
             const workoutDone = workoutsCompleted.has(iso);
-            const journal = journalsByDay.get(iso) ?? { note: "", todos: [] };
+            const cardioDone = cardioCompleted.has(iso);
+            const journal = journalsByDay.get(iso) ?? { note: "", todos: [], custodyTodos: [] };
             const programDay = isProgramDay(iso);
             const todayCell = isToday(iso);
             const kidsWeek = isCustodyDay(iso);
-            const hasJournal = dayHasJournalActivity(journal);
             const openTodos = dayJournalOpenTodos(journal);
+            const openCustodyTodos = dayJournalOpenCustodyTodos(journal);
             const doneCount = doses.filter((d) => completed.has(d.id)).length;
             const mealsDone = dayMeals.filter((m) => mealsCompleted.has(m.id)).length;
             const allDosesDone = doses.length === 0 || doneCount === doses.length;
             const allMealsDone = dayMeals.length === 0 || mealsDone === dayMeals.length;
             const workoutComplete = !workout || workout.type === "rest" || workoutDone;
             const todosComplete = journal.todos.length === 0 || openTodos === 0;
+            const custodyTodosComplete =
+              !kidsWeek || journal.custodyTodos.length === 0 || openCustodyTodos === 0;
             const allDone =
-              programDay && allDosesDone && allMealsDone && workoutComplete && todosComplete;
+              programDay &&
+              allDosesDone &&
+              allMealsDone &&
+              workoutComplete &&
+              todosComplete &&
+              custodyTodosComplete;
             const partial =
               programDay &&
               !allDone &&
               ((doneCount > 0 && doneCount < doses.length) ||
                 (mealsDone > 0 && mealsDone < dayMeals.length) ||
-                (workout != null && workout.type !== "rest" && workoutDone) ||
-                (journal.todos.some((t) => t.done) && openTodos > 0));
+                (workout != null && workout.type !== "rest" && (workoutDone || cardioDone)) ||
+                (journal.todos.some((t) => t.done) && openTodos > 0) ||
+                (kidsWeek && journal.custodyTodos.some((t) => t.done) && openCustodyTodos > 0));
+            const sectionSummaries = programDay
+              ? buildDaySectionSummaries({
+                  iso,
+                  workout,
+                  doses,
+                  meals: dayMeals,
+                  journal,
+                  peptideCompleted: completed,
+                  mealCompleted: mealsCompleted,
+                  cardioDone,
+                })
+              : [];
 
             return (
               <button
@@ -943,38 +1118,25 @@ export default function PeptideCalendarPanel() {
                     />
                   )}
                 </div>
-                {programDay && workout && (
-                  <p
-                    className={`mt-0.5 line-clamp-2 text-[8px] font-semibold leading-tight sm:mt-1 sm:line-clamp-1 sm:text-[10px] ${WORKOUT_CELL_TEXT[workout.type]} ${workoutDone && workout.type !== "rest" ? "line-through opacity-50" : ""}`}
-                  >
-                    {workout.label}
-                  </p>
-                )}
-                {programDay && summary && (
-                  <p className="mt-0.5 hidden line-clamp-1 text-[9px] leading-tight text-white/55 sm:block sm:text-[10px]">
-                    {summary}
-                  </p>
-                )}
                 {programDay && kidsWeek && (
-                  <p className="mt-0.5 hidden line-clamp-1 text-[9px] font-medium text-sky-300/90 sm:block sm:text-[10px]">
+                  <p className="mt-0.5 line-clamp-1 text-[8px] font-medium text-sky-300/90 sm:text-[10px]">
                     {custodyShortLabel(iso)}
                   </p>
                 )}
-                {programDay && dayMeals.length > 0 && (
-                  <p className="mt-0.5 hidden text-[9px] text-amber-200/70 sm:block sm:text-[10px]">
-                    {mealsDone}/{dayMeals.length} meals
-                  </p>
-                )}
-                {programDay && hasJournal && (
-                  <p className="mt-0.5 hidden text-[9px] text-violet-300/80 sm:block sm:text-[10px]">
-                    {openTodos > 0 ? `${openTodos} todo${openTodos === 1 ? "" : "s"}` : "Note"}
-                  </p>
-                )}
-                {doses.length > 0 && (
-                  <p className="mt-0.5 hidden text-[9px] tabular-nums text-white/35 lg:block">
-                    {doneCount}/{doses.length} doses
-                  </p>
-                )}
+                {sectionSummaries.map((item) => {
+                  const sectionComplete = item.done === item.total && item.total > 0;
+                  return (
+                    <p
+                      key={item.title}
+                      className={`mt-0.5 line-clamp-1 text-[8px] font-semibold tabular-nums leading-tight sm:text-[10px] ${
+                        sectionComplete ? "text-emerald-300" : "text-blue-200"
+                      }`}
+                    >
+                      {item.title} {item.done}/{item.total}
+                      {sectionComplete ? " complete" : ""}
+                    </p>
+                  );
+                })}
               </button>
             );
           })}
@@ -982,7 +1144,7 @@ export default function PeptideCalendarPanel() {
       </div>
 
       <p className="text-center text-xs text-white/40">
-        Click any day to view workout, peptides, meals, notes, and todos.
+        Click any day to view workout, peptides, meals, and todos.
       </p>
 
       <div>
@@ -1021,11 +1183,13 @@ export default function PeptideCalendarPanel() {
           meals={selectedMeals}
           workout={selectedWorkout}
           workoutDone={workoutsCompleted.has(selectedDate)}
+          cardioDone={cardioCompleted.has(selectedDate)}
           peptideCompleted={completed}
           mealCompleted={mealsCompleted}
           onTogglePeptide={toggle}
           onToggleMeal={toggleMeal}
           onToggleWorkout={toggleWorkout}
+          onToggleCardio={toggleCardio}
           onJournalUpdate={bumpJournal}
           onClose={() => setSelectedDate(null)}
         />

@@ -1,8 +1,9 @@
 const ORDER_KEY = "mdc-day-section-order";
 
-export type DaySectionId = "workout" | "meal" | "todo" | "peptides" | "notes";
+export type DaySectionId = "custody" | "workout" | "meal" | "todo" | "peptides" | "notes";
 
 export const DEFAULT_DAY_SECTION_ORDER: DaySectionId[] = [
+  "custody",
   "workout",
   "meal",
   "todo",
@@ -61,11 +62,16 @@ export function reorderDaySections(
 
 export function visibleDaySectionOrder(
   order: DaySectionId[],
-  opts: { hasWorkout: boolean; hasPeptides: boolean }
+  opts: { hasWorkout: boolean; hasPeptides: boolean; hasCustody: boolean }
 ): DaySectionId[] {
-  return order.filter((id) => {
+  const filtered = order.filter((id) => {
     if (id === "workout") return opts.hasWorkout;
     if (id === "peptides") return opts.hasPeptides;
+    if (id === "custody") return opts.hasCustody;
     return true;
   });
+
+  if (!opts.hasCustody) return filtered;
+
+  return ["custody", ...filtered.filter((id) => id !== "custody")];
 }

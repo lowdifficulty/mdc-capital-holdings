@@ -48,7 +48,7 @@ export default function SectionHeading({
         {headline}
       </h2>
       {body && (
-        <p className={`mt-6 text-base leading-relaxed md:text-lg ${bodyClass}`}>
+        <p className={`mt-6 whitespace-pre-line text-base leading-relaxed md:text-lg ${bodyClass}`}>
           {body}
         </p>
       )}

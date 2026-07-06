@@ -1,9 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { situations } from "@/data/site";
+import { situations as defaultSituations } from "@/data/site";
 
-export default function SituationsSection({ luxury = false }: { luxury?: boolean }) {
+interface SituationItem {
+  quote: string;
+  body: string;
+}
+
+interface SituationsSectionProps {
+  luxury?: boolean;
+  headline?: string;
+  body?: string;
+  situations?: SituationItem[];
+  panelLabel?: string;
+}
+
+export default function SituationsSection({
+  luxury = false,
+  headline = "We partner with businesses at pivotal moments.",
+  body = "Select your situation to see how MDC can support your next stage of growth, transition, or building.",
+  situations = defaultSituations,
+  panelLabel = "How we help",
+}: SituationsSectionProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   return (
@@ -15,11 +34,10 @@ export default function SituationsSection({ luxury = false }: { luxury?: boolean
       <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
         <div className="max-w-3xl">
           <h2 className="font-serif text-3xl tracking-tight text-[#f8f4ec] md:text-5xl">
-            We partner with businesses at pivotal moments.
+            {headline}
           </h2>
           <p className="mt-6 text-base leading-relaxed text-[#eae6dc]/75 md:text-lg">
-            Select your situation to see how MDC can support your next stage of
-            growth, transition, or building.
+            {body}
           </p>
         </div>
 
@@ -72,7 +90,7 @@ export default function SituationsSection({ luxury = false }: { luxury?: boolean
                 luxury ? "text-[#c9a227]" : "text-mdc-blue"
               }`}
             >
-              How we help
+              {panelLabel}
             </p>
             <h3
               className={`mt-4 font-serif text-2xl md:text-3xl ${
