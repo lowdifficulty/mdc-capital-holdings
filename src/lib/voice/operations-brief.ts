@@ -14,7 +14,7 @@ function emptyJournal(): DayJournal {
 
 export interface DailyBrief {
   date: string;
-  custody: { active: boolean; label: string | null };
+  custody: { active: boolean; label: string | null; pickedUp: boolean };
   workout: {
     scheduled: boolean;
     label: string | null;
@@ -78,6 +78,7 @@ export function buildDailyBrief(data: WellnessData, dateIso: string): DailyBrief
     custody: {
       active: isCustodyDay(dateIso),
       label: custodyLabel(dateIso),
+      pickedUp: (data.custodyPickupCheckoffs ?? []).includes(dateIso),
     },
     workout: {
       scheduled: Boolean(workout),

@@ -96,6 +96,7 @@ export function mergeWellnessData(a: WellnessData, b: WellnessData): WellnessDat
     workoutCheckoffs: unionStrings(a.workoutCheckoffs, b.workoutCheckoffs),
     cardioCheckoffs: unionStrings(a.cardioCheckoffs, b.cardioCheckoffs),
     mealCheckoffs: unionStrings(a.mealCheckoffs, b.mealCheckoffs),
+    custodyPickupCheckoffs: unionStrings(a.custodyPickupCheckoffs ?? [], b.custodyPickupCheckoffs ?? []),
     dayJournals: mergeRecords(a.dayJournals, b.dayJournals, mergeJournal),
     daySectionOrder: mergeSectionOrder(a.daySectionOrder, b.daySectionOrder),
     dayExerciseOrder: mergeRecords(a.dayExerciseOrder, b.dayExerciseOrder, (left, right) => {
@@ -115,6 +116,7 @@ export function wellnessHasContent(data: WellnessData): boolean {
     data.workoutCheckoffs.length > 0 ||
     data.cardioCheckoffs.length > 0 ||
     data.mealCheckoffs.length > 0 ||
+    (data.custodyPickupCheckoffs?.length ?? 0) > 0 ||
     Object.keys(data.dayJournals).length > 0 ||
     Object.keys(data.dayExerciseOrder).length > 0 ||
     Object.keys(data.workoutExerciseLogs).length > 0 ||

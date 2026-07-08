@@ -67,14 +67,10 @@ export function visibleDaySectionOrder(
   order: DaySectionId[],
   opts: { hasWorkout: boolean; hasPeptides: boolean; hasCustody: boolean }
 ): DaySectionId[] {
-  const filtered = order.filter((id) => {
+  return order.filter((id) => {
     if (id === "workout") return opts.hasWorkout;
     if (id === "peptides") return opts.hasPeptides;
     if (id === "custody") return opts.hasCustody;
     return true;
   });
-
-  if (!opts.hasCustody) return filtered;
-
-  return ["custody", ...filtered.filter((id) => id !== "custody")];
 }

@@ -4,6 +4,7 @@ const PEPTIDE_KEY = "mdc-peptide-checkoffs";
 const WORKOUT_KEY = "mdc-workout-checkoffs";
 const CARDIO_KEY = "mdc-cardio-checkoffs";
 const MEAL_KEY = "mdc-meal-checkoffs";
+const CUSTODY_PICKUP_KEY = "mdc-custody-pickup-checkoffs";
 
 export const DAILY_CARDIO_LABEL = "30 minutes of cardio";
 
@@ -68,5 +69,17 @@ export function toggleMealCompleted(id: string): Set<string> {
   if (set.has(id)) set.delete(id);
   else set.add(id);
   writeSet(MEAL_KEY, set);
+  return set;
+}
+
+export function getCustodyPickupCompleted(): Set<string> {
+  return readSet(CUSTODY_PICKUP_KEY);
+}
+
+export function toggleCustodyPickupCompleted(dateIso: string): Set<string> {
+  const set = readSet(CUSTODY_PICKUP_KEY);
+  if (set.has(dateIso)) set.delete(dateIso);
+  else set.add(dateIso);
+  writeSet(CUSTODY_PICKUP_KEY, set);
   return set;
 }

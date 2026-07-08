@@ -7,7 +7,7 @@ import {
   generateDosesForDate,
   type ScheduledDose,
 } from "@/lib/wellness/peptideSchedule";
-import { getPeptideCompleted, getMealCompleted, getWorkoutCompleted, getCardioCompleted, togglePeptideCompleted, toggleMealCompleted, toggleWorkoutCompleted, toggleCardioCompleted } from "@/lib/wellness/completionStore";
+import { getPeptideCompleted, getMealCompleted, getWorkoutCompleted, getCardioCompleted, getCustodyPickupCompleted, togglePeptideCompleted, toggleMealCompleted, toggleWorkoutCompleted, toggleCardioCompleted, toggleCustodyPickupCompleted } from "@/lib/wellness/completionStore";
 import { getExerciseLogsForDay } from "@/lib/wellness/workoutLogStore";
 import { WORKOUT_ROUTINES } from "@/lib/wellness/workoutRoutines";
 import {
@@ -69,8 +69,19 @@ function buildDaySectionSummaries(opts: {
   peptideCompleted: Set<string>;
   mealCompleted: Set<string>;
   cardioDone: boolean;
+  custodyPickupDone: boolean;
 }): DaySectionSummary[] {
-  const { iso, workout, doses, meals, journal, peptideCompleted, mealCompleted, cardioDone } = opts;
+  const {
+    iso,
+    workout,
+    doses,
+    meals,
+    journal,
+    peptideCompleted,
+    mealCompleted,
+    cardioDone,
+    custodyPickupDone,
+  } = opts;
   const sectionOrder = visibleDaySectionOrder(getDaySectionOrder(), {
     hasWorkout: !!workout,
     hasPeptides: doses.length > 0,
@@ -81,9 +92,11 @@ function buildDaySectionSummaries(opts: {
   for (const sectionId of sectionOrder) {
     switch (sectionId) {
       case "custody": {
-        if (journal.custodyTodos.length === 0) break;
-        const done = journal.custodyTodos.filter((t) => t.done).length;
-        summaries.push({ title: "David and Charles", done, total: journal.custodyTodos.length });
+        if (!isCustodyDay(iso)) break;
+        const todosDone = journal.custodyTodos.filter((t) => t.done).length;
+        const total = journal.custodyTodos.length + 1;
+        const done = (custodyPickupDone ? 1 : 0) + todosDone;
+        summaries.push({ title: "David and Charles", done, total });
         break;
       }
       case "workout": {
@@ -94,7 +107,7 @@ function buildDaySectionSummaries(opts: {
         const exercisesDone = exerciseIds.filter((id) => logs[id]?.done).length;
         const done = exercisesDone + (cardioDone ? 1 : 0);
         const total = exerciseIds.length + 1;
-        summaries.push({ title: "Workout", done, total });
+        summaries.push({ title: `Workout · ${workout.label}`, done, total });
         break;
       }
       case "meal": {
@@ -388,6 +401,8 @@ function DayDetailModal({
   onJournalUpdate,
   onClose,
   syncToken,
+  custodyPickupDone,
+  onToggleCustodyPickup,
 }: {
   iso: string;
   doses: ScheduledDose[];
@@ -404,6 +419,8 @@ function DayDetailModal({
   onJournalUpdate: () => void;
   onClose: () => void;
   syncToken: number;
+  custodyPickupDone: boolean;
+  onToggleCustodyPickup: (dateIso: string) => void;
 }) {
   const [journal, setJournal] = useState<DayJournal>(() => getDayJournal(iso));
   const [todoDraft, setTodoDraft] = useState("");
@@ -428,7 +445,8 @@ function DayDetailModal({
     : false;
   const mealSectionDone = meals.length > 0 && mealsDone === meals.length;
   const todoSectionDone = journal.todos.length > 0 && openTodos === 0;
-  const custodySectionDone = journal.custodyTodos.length > 0 && openCustodyTodos === 0;
+  const custodySectionDone =
+    custodyPickupDone && (journal.custodyTodos.length === 0 || openCustodyTodos === 0);
   const peptideSectionDone = doses.length > 0 && dosesDone === doses.length;
   const notesSectionDone = true;
 
@@ -471,6 +489,10 @@ function DayDetailModal({
     setCustodyTodoDraft("");
     setNoteEditing(!loaded.noteLocked);
     setOpenSections({});
+  }, [iso]);
+
+  useEffect(() => {
+    setJournal(getDayJournal(iso));
   }, [iso, syncToken]);
 
   useEffect(() => {
@@ -572,7 +594,22 @@ function DayDetailModal({
             {...planNoteProps("custody")}
             {...withDrag(id)}
           >
-            <form onSubmit={handleAddCustodyTodo} className="flex flex-col gap-2 sm:flex-row">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-3 transition active:bg-white/5 sm:hover:border-white/20">
+              <input
+                type="checkbox"
+                checked={custodyPickupDone}
+                onChange={() => onToggleCustodyPickup(iso)}
+                className="mt-1 h-5 w-5 shrink-0 rounded border-white/30 accent-emerald-500"
+              />
+              <div className="min-w-0 flex-1">
+                <span
+                  className={`font-semibold ${custodyPickupDone ? "text-emerald-300" : "text-white"}`}
+                >
+                  Picked up David and Charles
+                </span>
+              </div>
+            </label>
+            <form onSubmit={handleAddCustodyTodo} className="mt-3 flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={custodyTodoDraft}
@@ -910,6 +947,9 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
   const [mealsCompleted, setMealsCompleted] = useState<Set<string>>(() => getMealCompleted());
   const [workoutsCompleted, setWorkoutsCompleted] = useState<Set<string>>(() => getWorkoutCompleted());
   const [cardioCompleted, setCardioCompleted] = useState<Set<string>>(() => getCardioCompleted());
+  const [custodyPickupCompleted, setCustodyPickupCompleted] = useState<Set<string>>(() =>
+    getCustodyPickupCompleted()
+  );
   const [journalTick, setJournalTick] = useState(0);
 
   const bumpJournal = useCallback(() => setJournalTick((t) => t + 1), []);
@@ -919,6 +959,7 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
     setMealsCompleted(getMealCompleted());
     setWorkoutsCompleted(getWorkoutCompleted());
     setCardioCompleted(getCardioCompleted());
+    setCustodyPickupCompleted(getCustodyPickupCompleted());
     setJournalTick((t) => t + 1);
   }, [syncToken]);
 
@@ -960,6 +1001,10 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
 
   const toggleCardio = useCallback((dateIso: string) => {
     setCardioCompleted(toggleCardioCompleted(dateIso));
+  }, []);
+
+  const toggleCustodyPickup = useCallback((dateIso: string) => {
+    setCustodyPickupCompleted(toggleCustodyPickupCompleted(dateIso));
   }, []);
 
   const monthLabel = new Date(year, month, 1).toLocaleDateString("en-US", {
@@ -1059,6 +1104,7 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
             const kidsWeek = isCustodyDay(iso);
             const openTodos = dayJournalOpenTodos(journal);
             const openCustodyTodos = dayJournalOpenCustodyTodos(journal);
+            const custodyPickupDone = custodyPickupCompleted.has(iso);
             const doneCount = doses.filter((d) => completed.has(d.id)).length;
             const mealsDone = dayMeals.filter((m) => mealsCompleted.has(m.id)).length;
             const allDosesDone = doses.length === 0 || doneCount === doses.length;
@@ -1066,7 +1112,8 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
             const workoutComplete = !workout || workout.type === "rest" || workoutDone;
             const todosComplete = journal.todos.length === 0 || openTodos === 0;
             const custodyTodosComplete =
-              !kidsWeek || journal.custodyTodos.length === 0 || openCustodyTodos === 0;
+              !kidsWeek ||
+              (custodyPickupDone && (journal.custodyTodos.length === 0 || openCustodyTodos === 0));
             const allDone =
               programDay &&
               allDosesDone &&
@@ -1081,6 +1128,7 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
                 (mealsDone > 0 && mealsDone < dayMeals.length) ||
                 (workout != null && workout.type !== "rest" && (workoutDone || cardioDone)) ||
                 (journal.todos.some((t) => t.done) && openTodos > 0) ||
+                (kidsWeek && !custodyPickupDone) ||
                 (kidsWeek && journal.custodyTodos.some((t) => t.done) && openCustodyTodos > 0));
             const sectionSummaries = programDay
               ? buildDaySectionSummaries({
@@ -1092,6 +1140,7 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
                   peptideCompleted: completed,
                   mealCompleted: mealsCompleted,
                   cardioDone,
+                  custodyPickupDone,
                 })
               : [];
 
@@ -1133,7 +1182,11 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
                   )}
                 </div>
                 {programDay && kidsWeek && (
-                  <p className="mt-0.5 line-clamp-1 text-[8px] font-medium text-sky-300/90 sm:text-[10px]">
+                  <p
+                    className={`mt-0.5 line-clamp-1 text-[8px] font-medium sm:text-[10px] ${
+                      custodyPickupDone ? "text-emerald-300" : "text-sky-300/90"
+                    }`}
+                  >
                     {custodyShortLabel(iso)}
                   </p>
                 )}
@@ -1207,6 +1260,8 @@ export default function PeptideCalendarPanel({ syncToken = 0 }: { syncToken?: nu
           onJournalUpdate={bumpJournal}
           onClose={() => setSelectedDate(null)}
           syncToken={syncToken}
+          custodyPickupDone={custodyPickupCompleted.has(selectedDate)}
+          onToggleCustodyPickup={toggleCustodyPickup}
         />
       )}
     </div>

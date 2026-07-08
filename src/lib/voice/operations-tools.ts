@@ -81,8 +81,8 @@ export async function executeOperationsTool(
       data = ensureJournal(data, dateIso);
       const journal = { ...data.dayJournals[dateIso] };
       const todo = { id: randomUUID(), text, done: false };
-      if (custody) journal.custodyTodos = [...journal.custodyTodos, todo];
-      else journal.todos = [...journal.todos, todo];
+      if (custody) journal.custodyTodos = [todo, ...journal.custodyTodos];
+      else journal.todos = [todo, ...journal.todos];
       data = touch({
         ...data,
         dayJournals: { ...data.dayJournals, [dateIso]: journal },

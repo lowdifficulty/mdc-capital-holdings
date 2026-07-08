@@ -143,7 +143,7 @@ export function addDayTodo(dateIso: string, text: string): DayJournal {
   if (!trimmed) return getDayJournal(dateIso);
   const all = readAll();
   const journal = ensure(all, dateIso);
-  journal.todos.push({ id: crypto.randomUUID(), text: trimmed, done: false });
+  journal.todos.unshift({ id: crypto.randomUUID(), text: trimmed, done: false });
   writeAll(all);
   return { ...journal, todos: [...journal.todos] };
 }
@@ -197,7 +197,7 @@ export function addCustodyTodo(dateIso: string, text: string): DayJournal {
   if (!trimmed) return getDayJournal(dateIso);
   const all = readAll();
   const journal = ensure(all, dateIso);
-  journal.custodyTodos.push({ id: crypto.randomUUID(), text: trimmed, done: false });
+  journal.custodyTodos.unshift({ id: crypto.randomUUID(), text: trimmed, done: false });
   writeAll(all);
   return { ...journal, custodyTodos: [...journal.custodyTodos] };
 }

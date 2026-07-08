@@ -55,6 +55,7 @@ export function collectWellnessFromLocalStorage(): WellnessData {
     workoutCheckoffs: readJson<string[]>(WELLNESS_LOCAL_KEYS.workoutCheckoffs, []),
     cardioCheckoffs: readJson<string[]>(WELLNESS_LOCAL_KEYS.cardioCheckoffs, []),
     mealCheckoffs: readJson<string[]>(WELLNESS_LOCAL_KEYS.mealCheckoffs, []),
+    custodyPickupCheckoffs: readJson<string[]>(WELLNESS_LOCAL_KEYS.custodyPickupCheckoffs, []),
     dayJournals: readJson(WELLNESS_LOCAL_KEYS.dayJournals, {}),
     daySectionOrder: readJson(WELLNESS_LOCAL_KEYS.daySectionOrder, emptyWellnessData().daySectionOrder),
     dayExerciseOrder: readJson(WELLNESS_LOCAL_KEYS.dayExerciseOrder, {}),
@@ -69,6 +70,7 @@ export function applyWellnessToLocalStorage(data: WellnessData): void {
   writeJson(WELLNESS_LOCAL_KEYS.workoutCheckoffs, data.workoutCheckoffs);
   writeJson(WELLNESS_LOCAL_KEYS.cardioCheckoffs, data.cardioCheckoffs);
   writeJson(WELLNESS_LOCAL_KEYS.mealCheckoffs, data.mealCheckoffs);
+  writeJson(WELLNESS_LOCAL_KEYS.custodyPickupCheckoffs, data.custodyPickupCheckoffs ?? []);
   writeJson(WELLNESS_LOCAL_KEYS.dayJournals, data.dayJournals);
   writeJson(WELLNESS_LOCAL_KEYS.daySectionOrder, data.daySectionOrder);
   writeJson(WELLNESS_LOCAL_KEYS.dayExerciseOrder, data.dayExerciseOrder);
