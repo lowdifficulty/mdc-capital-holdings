@@ -3,6 +3,10 @@
 import { mergeWellnessData } from "@/lib/wellness/merge";
 import { registerWellnessSyncScheduler } from "@/lib/wellness/syncNotify";
 import {
+  applyWorkoutScheduleLagDays,
+  getWorkoutScheduleLagDays,
+} from "@/lib/wellness/workoutScheduleStore";
+import {
   emptyWellnessData,
   WELLNESS_LOCAL_KEYS,
   WELLNESS_META_KEY,
@@ -56,6 +60,7 @@ export function collectWellnessFromLocalStorage(): WellnessData {
     cardioCheckoffs: readJson<string[]>(WELLNESS_LOCAL_KEYS.cardioCheckoffs, []),
     mealCheckoffs: readJson<string[]>(WELLNESS_LOCAL_KEYS.mealCheckoffs, []),
     custodyPickupCheckoffs: readJson<string[]>(WELLNESS_LOCAL_KEYS.custodyPickupCheckoffs, []),
+    workoutScheduleLagDays: getWorkoutScheduleLagDays(),
     dayJournals: readJson(WELLNESS_LOCAL_KEYS.dayJournals, {}),
     daySectionOrder: readJson(WELLNESS_LOCAL_KEYS.daySectionOrder, emptyWellnessData().daySectionOrder),
     dayExerciseOrder: readJson(WELLNESS_LOCAL_KEYS.dayExerciseOrder, {}),
@@ -71,6 +76,7 @@ export function applyWellnessToLocalStorage(data: WellnessData): void {
   writeJson(WELLNESS_LOCAL_KEYS.cardioCheckoffs, data.cardioCheckoffs);
   writeJson(WELLNESS_LOCAL_KEYS.mealCheckoffs, data.mealCheckoffs);
   writeJson(WELLNESS_LOCAL_KEYS.custodyPickupCheckoffs, data.custodyPickupCheckoffs ?? []);
+  applyWorkoutScheduleLagDays(data.workoutScheduleLagDays ?? emptyWellnessData().workoutScheduleLagDays);
   writeJson(WELLNESS_LOCAL_KEYS.dayJournals, data.dayJournals);
   writeJson(WELLNESS_LOCAL_KEYS.daySectionOrder, data.daySectionOrder);
   writeJson(WELLNESS_LOCAL_KEYS.dayExerciseOrder, data.dayExerciseOrder);

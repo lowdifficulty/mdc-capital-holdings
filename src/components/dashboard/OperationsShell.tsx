@@ -4,22 +4,19 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "@/components/dashboard/ThemeToggle";
 
-const NAV: { href: string; label: string; exact?: boolean }[] = [
-  { href: "/intelligence", label: "Dashboard", exact: true },
-  { href: "/intelligence/scanner", label: "Scanner" },
-  { href: "/intelligence/watchlist", label: "Watchlist" },
-  { href: "/intelligence/settings", label: "Settings" },
+const OPS_NAV: { href: string; label: string; exact?: boolean }[] = [
   { href: "/dashboard", label: "Operations", exact: true },
   { href: "/dashboard/projects", label: "Projects" },
+  { href: "/intelligence", label: "Intelligence" },
 ];
 
-export default function IntelligenceShell({
+export default function OperationsShell({
   children,
-  title,
+  title = "Operations Dashboard",
   subtitle,
 }: {
   children: React.ReactNode;
-  title: string;
+  title?: string;
   subtitle?: string;
 }) {
   const pathname = usePathname();
@@ -35,24 +32,26 @@ export default function IntelligenceShell({
       <div className="pointer-events-none fixed inset-0 dashboard-wayne-texture" aria-hidden />
       <div className="pointer-events-none fixed inset-0 dashboard-wayne-gold-wash" aria-hidden />
 
-      <header className="sticky top-0 z-20 border-b border-[#c9a227]/15 bg-[#050505]/95 backdrop-blur-md">
-        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-[60] border-b border-[#c9a227]/15 bg-[#050505]/95 backdrop-blur-md">
+        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Link
               href="/"
-              className="flex h-9 w-9 items-center justify-center rounded-sm bg-[#c9a227] text-xs font-bold text-[#050505]"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-[#c9a227] text-xs font-bold text-[#050505]"
             >
               MDC
             </Link>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
-                Intelligence
+            <div className="min-w-0">
+              <p className="truncate text-xs font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
+                Command center
               </p>
-              <p className="text-sm font-serif text-[#f8f4ec]">{title}</p>
-              {subtitle && <p className="text-xs text-[#eae6dc]/45">{subtitle}</p>}
+              <p className="truncate font-serif text-sm text-[#f8f4ec] sm:text-base">{title}</p>
+              {subtitle && (
+                <p className="hidden truncate text-xs text-[#eae6dc]/45 lg:block">{subtitle}</p>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <ThemeToggle />
             <button
               type="button"
@@ -63,18 +62,16 @@ export default function IntelligenceShell({
             </button>
           </div>
         </div>
-        <nav className="relative z-10 mx-auto flex max-w-7xl gap-2 overflow-x-auto px-6 pb-3 lg:px-8">
-          {NAV.map((item) => {
-            const active = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
+        <nav className="relative z-10 mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6 lg:px-8">
+          {OPS_NAV.map((item) => {
+            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`shrink-0 rounded-sm px-4 py-1.5 text-sm font-medium uppercase tracking-wide transition ${
+                className={`touch-manipulation shrink-0 rounded-sm px-4 py-2 text-sm font-bold uppercase tracking-wide transition ${
                   active
-                    ? "bg-[#c9a227] text-[#050505]"
+                    ? "bg-[#c9a227] text-[#050505] shadow-lg shadow-[#c9a227]/20"
                     : "border border-[#c9a227]/20 text-[#eae6dc]/65 hover:border-[#c9a227]/40 hover:text-[#c9a227]"
                 }`}
               >
@@ -84,7 +81,8 @@ export default function IntelligenceShell({
           })}
         </nav>
       </header>
-      <div className="relative z-10 mx-auto max-w-7xl px-6 py-8 lg:px-8">{children}</div>
+
+      <div className="relative z-10 mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">{children}</div>
     </div>
   );
 }

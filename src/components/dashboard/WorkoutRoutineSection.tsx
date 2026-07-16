@@ -24,7 +24,7 @@ import {
   reorderDayExercises,
 } from "@/lib/wellness/dayExerciseOrderStore";
 import { WORKOUT_ROUTINES } from "@/lib/wellness/workoutRoutines";
-import type { WorkoutDay } from "@/lib/wellness/workoutSchedule";
+import { incrementWorkoutScheduleLagDays, type WorkoutDay } from "@/lib/wellness/workoutSchedule";
 
 const DAY_VIEW_WORKOUT =
   "border-mdc-blue/35 bg-mdc-blue/10 text-blue-100 shadow-sm shadow-mdc-blue/5";
@@ -339,6 +339,7 @@ interface WorkoutRoutineSectionProps {
   cardioDone: boolean;
   onToggleWorkout: (dateIso: string) => void;
   onToggleCardio: (dateIso: string) => void;
+  onChecklistChange?: () => void;
   embedded?: boolean;
 }
 
@@ -349,6 +350,7 @@ export default function WorkoutRoutineSection({
   cardioDone,
   onToggleWorkout,
   onToggleCardio,
+  onChecklistChange,
   embedded = false,
 }: WorkoutRoutineSectionProps) {
   const [open, setOpen] = useState(false);
@@ -420,12 +422,14 @@ export default function WorkoutRoutineSection({
     const next = getExerciseLogsForDay(iso, exerciseIds);
     setLogs(next);
     syncWorkoutDone(next, cardioDone);
+    onChecklistChange?.();
   }
 
   function handleToggleCardio() {
     onToggleCardio(iso);
     const nextCardio = !cardioDone;
     syncWorkoutDone(logs, nextCardio);
+    onChecklistChange?.();
   }
 
   function handleSetsChange(exerciseId: string, setWeights: string[]) {
@@ -584,12 +588,24 @@ export default function WorkoutRoutineSection({
   if (embedded) {
     return (
       <div className="text-blue-100">
-        <p className="text-base font-bold">{workout.label}</p>
-        <p className="mt-0.5 text-sm opacity-80">{routine.title}</p>
-        <p className="mt-1 text-xs opacity-60">
-          {checklistDone}/{checklistTotal} items
-          {workoutDone && " · Complete"}
-        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-base font-bold">{workout.label}</p>
+            <p className="mt-0.5 text-sm opacity-80">{routine.title}</p>
+            <p className="mt-1 text-xs opacity-60">
+              {checklistDone}/{checklistTotal} items
+              {workoutDone && " · Complete"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => incrementWorkoutScheduleLagDays()}
+            className="touch-manipulation shrink-0 rounded-xl border border-white/20 px-3 py-2 text-xs font-semibold text-white/75 transition hover:border-white/35 hover:bg-white/5 active:bg-white/10"
+            title="Skip today and shift Push/Pull/Lower/Upper/Lower back one day on the calendar"
+          >
+            Skip
+          </button>
+        </div>
         <DailyBodyMetricsPanel iso={iso} embedded />
         <div className="mt-2">{exerciseList}</div>
       </div>

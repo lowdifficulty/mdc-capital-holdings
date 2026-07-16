@@ -40,7 +40,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${libreBaskerville.variable}`}>
+    <html lang="en" className={`${dmSans.variable} ${libreBaskerville.variable}`} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var p=location.pathname;if(!/^\\/(dashboard|intelligence|login|register)(\\/|$)/.test(p))return;var s=localStorage.getItem("mdc-command-center-theme");var t=s==="light"||s==="dark"?s:(window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark");document.documentElement.setAttribute("data-dashboard-theme",t);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="antialiased">
         <AppShell>{children}</AppShell>
       </body>

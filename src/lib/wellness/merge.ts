@@ -1,6 +1,7 @@
 import type { DayJournal, DayTodo } from "@/lib/wellness/dayJournalStore";
 import type { DailyBodyMetrics, ExerciseLog } from "@/lib/wellness/workoutLogStore";
 import type { WellnessData } from "@/lib/wellness/types";
+import { DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS } from "@/lib/wellness/workoutScheduleStore";
 
 function unionStrings(a: string[], b: string[]): string[] {
   return [...new Set([...a, ...b])];
@@ -97,6 +98,10 @@ export function mergeWellnessData(a: WellnessData, b: WellnessData): WellnessDat
     cardioCheckoffs: unionStrings(a.cardioCheckoffs, b.cardioCheckoffs),
     mealCheckoffs: unionStrings(a.mealCheckoffs, b.mealCheckoffs),
     custodyPickupCheckoffs: unionStrings(a.custodyPickupCheckoffs ?? [], b.custodyPickupCheckoffs ?? []),
+    workoutScheduleLagDays: Math.max(
+      a.workoutScheduleLagDays ?? DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS,
+      b.workoutScheduleLagDays ?? DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS,
+    ),
     dayJournals: mergeRecords(a.dayJournals, b.dayJournals, mergeJournal),
     daySectionOrder: mergeSectionOrder(a.daySectionOrder, b.daySectionOrder),
     dayExerciseOrder: mergeRecords(a.dayExerciseOrder, b.dayExerciseOrder, (left, right) => {

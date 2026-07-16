@@ -17,6 +17,7 @@ function isWellnessData(value: unknown): value is WellnessData {
     Array.isArray(data.cardioCheckoffs) &&
     Array.isArray(data.mealCheckoffs) &&
     (data.custodyPickupCheckoffs === undefined || Array.isArray(data.custodyPickupCheckoffs)) &&
+    (data.workoutScheduleLagDays === undefined || typeof data.workoutScheduleLagDays === "number") &&
     typeof data.dayJournals === "object" &&
     Array.isArray(data.daySectionOrder) &&
     typeof data.dayExerciseOrder === "object" &&
@@ -57,6 +58,7 @@ export async function PUT(request: Request) {
       ...emptyWellnessData(body.data.updatedAt ?? new Date(0).toISOString()),
       ...body.data,
       custodyPickupCheckoffs: body.data.custodyPickupCheckoffs ?? [],
+      workoutScheduleLagDays: body.data.workoutScheduleLagDays ?? 1,
       updatedAt: body.data.updatedAt ?? new Date().toISOString(),
     };
 

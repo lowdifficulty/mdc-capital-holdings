@@ -60,6 +60,23 @@ type DaySectionSummary = {
   total: number;
 };
 
+function workoutChecklistProgress(
+  iso: string,
+  workout: WorkoutDay | null,
+  cardioDone: boolean
+): { done: number; total: number; complete: boolean } {
+  if (!workout || workout.type === "rest" || !workout.routineId) {
+    return { done: 0, total: 0, complete: workout?.type === "rest" };
+  }
+  const routine = WORKOUT_ROUTINES[workout.routineId];
+  const exerciseIds = routine.exercises.map((e) => e.id);
+  const logs = getExerciseLogsForDay(iso, exerciseIds);
+  const exercisesDone = exerciseIds.filter((id) => logs[id]?.done).length;
+  const done = exercisesDone + (cardioDone ? 1 : 0);
+  const total = exerciseIds.length + 1;
+  return { done, total, complete: total > 0 && done === total };
+}
+
 function buildDaySectionSummaries(opts: {
   iso: string;
   workout: WorkoutDay | null;
@@ -101,12 +118,7 @@ function buildDaySectionSummaries(opts: {
       }
       case "workout": {
         if (!workout || workout.type === "rest" || !workout.routineId) break;
-        const routine = WORKOUT_ROUTINES[workout.routineId];
-        const exerciseIds = routine.exercises.map((e) => e.id);
-        const logs = getExerciseLogsForDay(iso, exerciseIds);
-        const exercisesDone = exerciseIds.filter((id) => logs[id]?.done).length;
-        const done = exercisesDone + (cardioDone ? 1 : 0);
-        const total = exerciseIds.length + 1;
+        const { done, total } = workoutChecklistProgress(iso, workout, cardioDone);
         summaries.push({ title: `Workout · ${workout.label}`, done, total });
         break;
       }
@@ -431,6 +443,7 @@ function DayDetailModal({
   const [dragSectionId, setDragSectionId] = useState<DaySectionId | null>(null);
   const [dragOverSectionId, setDragOverSectionId] = useState<DaySectionId | null>(null);
   const [portalReady, setPortalReady] = useState(false);
+  const [workoutChecklistVersion, setWorkoutChecklistVersion] = useState(0);
   const isCustody = isCustodyDay(iso);
   const programDay = isProgramDay(iso);
   const dosesDone = doses.filter((d) => peptideCompleted.has(d.id)).length;
@@ -440,9 +453,10 @@ function DayDetailModal({
   const custodyTodosDone = journal.custodyTodos.filter((t) => t.done).length;
   const openCustodyTodos = journal.custodyTodos.length - custodyTodosDone;
 
-  const workoutSectionDone = workout
-    ? workout.type === "rest" || workoutDone
-    : false;
+  const workoutSectionDone = useMemo(() => {
+    void workoutChecklistVersion;
+    return workoutChecklistProgress(iso, workout, getCardioCompleted().has(iso)).complete;
+  }, [iso, workout, cardioDone, workoutChecklistVersion]);
   const mealSectionDone = meals.length > 0 && mealsDone === meals.length;
   const todoSectionDone = journal.todos.length > 0 && openTodos === 0;
   const custodySectionDone =
@@ -659,6 +673,7 @@ function DayDetailModal({
               cardioDone={cardioDone}
               onToggleWorkout={onToggleWorkout}
               onToggleCardio={onToggleCardio}
+              onChecklistChange={() => setWorkoutChecklistVersion((v) => v + 1)}
               embedded
             />
           </DaySectionDropdown>

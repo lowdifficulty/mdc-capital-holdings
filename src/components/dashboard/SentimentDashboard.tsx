@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, Fragment } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import SentimentSourceMatrix from "@/components/dashboard/SentimentSourceMatrix";
 import MoverExpandPanel from "@/components/dashboard/MoverExpandPanel";
@@ -29,6 +29,7 @@ import type {
 import { readMoversCache, writeMoversCache, clearMoversCache } from "@/lib/dashboard/moversCache";
 import { useQuiverSync } from "@/hooks/useQuiverSync";
 import { useWellnessSync } from "@/hooks/useWellnessSync";
+import ThemeToggle from "@/components/dashboard/ThemeToggle";
 
 const POLL_MS = 60_000;
 const POPULAR_TICKERS = ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "META", "GOOGL"];
@@ -259,6 +260,7 @@ function reportCacheKey(symbol: string, period: SentimentPeriod): string {
 
 export default function SentimentDashboard() {
   const router = useRouter();
+  const pathname = usePathname();
   const { refreshToken: wellnessSyncToken } = useWellnessSync();
   const [mainTab, setMainTab] = useState<MainTab>("health");
   const [financeView, setFinanceView] = useState<FinanceView>("positions");
@@ -621,15 +623,43 @@ export default function SentimentDashboard() {
                 </p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => void handleLogout()}
-              className="shrink-0 rounded-sm border border-[#c9a227]/35 px-3 py-1.5 text-sm uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:border-[#c9a227] hover:text-[#c9a227]"
-            >
-              Sign out
-            </button>
+            <div className="flex shrink-0 items-center gap-2">
+              <ThemeToggle />
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                className="rounded-sm border border-[#c9a227]/35 px-3 py-1.5 text-sm uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:border-[#c9a227] hover:text-[#c9a227]"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
         </header>
+
+        <nav className="relative z-10 mx-auto flex max-w-7xl gap-2 overflow-x-auto border-b border-[#c9a227]/10 px-4 pb-3 sm:px-6 lg:px-8">
+          {(
+            [
+              ["/dashboard", "Operations", true],
+              ["/dashboard/projects", "Projects", false],
+              ["/intelligence", "Intelligence", false],
+            ] as const
+          ).map(([href, label, exact]) => {
+            const active = exact ? pathname === href : pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`touch-manipulation shrink-0 rounded-sm px-4 py-2 text-sm font-bold uppercase tracking-wide transition ${
+                  active
+                    ? "bg-[#c9a227] text-[#050505] shadow-lg shadow-[#c9a227]/20"
+                    : "border border-[#c9a227]/20 text-[#eae6dc]/65 hover:border-[#c9a227]/40 hover:text-[#c9a227]"
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
 
         <div className="border-b border-[#c9a227]/10 sm:hidden">
           <div className="-mx-0 flex gap-2 overflow-x-auto px-3 py-2 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">

@@ -2,9 +2,13 @@
 
 import { routineIdForSplitDay, type RoutineId } from "@/lib/wellness/workoutRoutines";
 import { daysSinceProgramStart, isProgramDay } from "@/lib/wellness/programStart";
+import {
+  DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS,
+  getWorkoutScheduleLagDays,
+} from "@/lib/wellness/workoutScheduleStore";
 
-/** Subtract from split index when gym days were skipped (Jul 5, 2026 missed → shift split by 1). */
-export const WORKOUT_SCHEDULE_LAG_DAYS = 1;
+/** @deprecated Use getWorkoutScheduleLagDays() — kept for initial Jul 5 miss default. */
+export const WORKOUT_SCHEDULE_LAG_DAYS = DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS;
 
 export type WorkoutType = "push" | "pull" | "lower" | "upper" | "rest";
 
@@ -24,10 +28,13 @@ const SPLIT: { type: WorkoutType; label: string; focus: string }[] = [
   { type: "lower", label: "Lower", focus: "Legs — hinge & squat emphasis" },
 ];
 
-/** Split anchored to program start — day 0 is Push (minus any lag from skipped gym days). */
-export function workoutForDate(dateIso: string): WorkoutDay | null {
+/** Split anchored to program start — day 0 is Push (minus lag from skipped gym days). */
+export function workoutForDate(dateIso: string, lagDays?: number): WorkoutDay | null {
   if (!isProgramDay(dateIso)) return null;
-  const dayIndex = Math.max(0, daysSinceProgramStart(dateIso) - WORKOUT_SCHEDULE_LAG_DAYS);
+  const lag =
+    lagDays ??
+    (typeof window !== "undefined" ? getWorkoutScheduleLagDays() : DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS);
+  const dayIndex = Math.max(0, daysSinceProgramStart(dateIso) - lag);
   const slot = SPLIT[dayIndex % SPLIT.length] ?? SPLIT[0];
   const routineId = routineIdForSplitDay(dayIndex);
   return { date: dateIso, ...slot, routineId };
@@ -62,3 +69,5 @@ export const WORKOUT_CELL_TEXT: Record<WorkoutType, string> = {
   upper: "text-violet-300",
   rest: "text-white/40",
 };
+
+export { incrementWorkoutScheduleLagDays, getWorkoutScheduleLagDays } from "@/lib/wellness/workoutScheduleStore";

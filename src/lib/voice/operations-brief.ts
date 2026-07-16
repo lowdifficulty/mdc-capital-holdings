@@ -7,6 +7,7 @@ import { generateDosesForDate } from "@/lib/wellness/peptideSchedule";
 import type { WellnessData } from "@/lib/wellness/types";
 import { workoutForDate } from "@/lib/wellness/workoutSchedule";
 import { DAILY_CARDIO_LABEL } from "@/lib/wellness/completionStore";
+import { DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS } from "@/lib/wellness/workoutScheduleStore";
 
 function emptyJournal(): DayJournal {
   return { note: "", noteLocked: false, planNotes: {}, todos: [], custodyTodos: [] };
@@ -46,7 +47,10 @@ export function buildDailyBrief(data: WellnessData, dateIso: string): DailyBrief
   const journal = data.dayJournals[dateIso] ?? emptyJournal();
   const doses = generateDosesForDate(dateIso);
   const meals = mealsForDate(dateIso);
-  const workout = workoutForDate(dateIso);
+  const workout = workoutForDate(
+    dateIso,
+    data.workoutScheduleLagDays ?? DEFAULT_WORKOUT_SCHEDULE_LAG_DAYS,
+  );
   const metrics = data.dailyBodyMetrics[dateIso];
 
   const peptideItems = doses.map((d) => ({
