@@ -9,8 +9,8 @@ export default function A2pContactForm() {
   const [smsOptIn, setSmsOptIn] = useState(false);
 
   const inputClass =
-    "w-full rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none transition-colors focus:border-mdc-blue focus:ring-2 focus:ring-mdc-blue/20";
-  const labelClass = "mb-2 block text-sm font-medium text-slate-800";
+    "w-full rounded-lg border border-navy/15 px-4 py-3 text-sm text-dark-text outline-none transition-colors focus:border-mdc-blue focus:ring-2 focus:ring-mdc-blue/20";
+  const labelClass = "mb-2 block text-sm font-medium text-navy";
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,7 +34,7 @@ export default function A2pContactForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="rounded-lg border border-slate-200 bg-white p-8 shadow-sm md:p-10"
+      className="rounded-lg border border-navy/10 bg-white p-8 shadow-sm md:p-10"
     >
       <div className="grid gap-6 md:grid-cols-2">
         <label className="block">

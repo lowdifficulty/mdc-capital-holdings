@@ -22,6 +22,58 @@ body {
   font-family: var(--font-body), system-ui, sans-serif;
 }
 
+body.site-a2p-mode {
+  background-color: #f5f7fa;
+  color: #111827;
+}
+
+/* ── A2P / business verification site (light, high contrast) ── */
+
+.site-a2p {
+  background-color: #f5f7fa;
+  color: #111827;
+}
+
+.site-a2p .text-navy,
+.site-a2p h1,
+.site-a2p h2,
+.site-a2p h3 {
+  color: #071a33;
+}
+
+.site-a2p .text-slate {
+  color: #5b677a;
+}
+
+.site-a2p .text-mdc-blue {
+  color: #1769ff;
+}
+
+.site-a2p .text-dark-text {
+  color: #111827;
+}
+
+.site-a2p .bg-soft-blue {
+  background-color: #eaf2ff;
+}
+
+.site-a2p .bg-white {
+  background-color: #ffffff;
+}
+
+.site-a2p .border-navy\/10 {
+  border-color: rgba(7, 26, 51, 0.1);
+}
+
+.site-a2p .border-slate-200 {
+  border-color: #e2e8f0;
+}
+
+.site-a2p .bg-slate-50 {
+  background-color: #f8fafc;
+}
+
+
 .font-serif,
 h1,
 h2,

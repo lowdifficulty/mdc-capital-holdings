@@ -6,10 +6,10 @@ export default function BusinessContactCard() {
     companyLegal;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-6 text-sm text-slate-700">
-      <p className="font-semibold text-slate-900">{name}</p>
-      <p className="mt-1 text-slate-600">{legalEntityName}</p>
-      <p className="mt-3">{formatBusinessAddress()}</p>
+    <div className="rounded-xl border border-navy/10 bg-white p-6 text-sm text-slate shadow-sm">
+      <p className="font-semibold text-navy">{name}</p>
+      <p className="mt-1 text-slate">{legalEntityName}</p>
+      <p className="mt-3 text-navy">{formatBusinessAddress()}</p>
       <p className="mt-2">
         <a href={`tel:${businessPhone}`} className="text-mdc-blue hover:text-navy">
           {businessPhoneDisplay}
@@ -20,8 +20,8 @@ export default function BusinessContactCard() {
           {contactEmail}
         </a>
       </p>
-      <p className="mt-3 text-xs text-slate-500">EIN {ein}</p>
-      <p className="mt-4 text-xs leading-relaxed text-slate-500">
+      <p className="mt-3 text-xs text-slate">EIN {ein}</p>
+      <p className="mt-4 text-xs leading-relaxed text-slate">
         <Link href="/privacy-policy" className="text-mdc-blue hover:text-navy">
           Privacy Policy
         </Link>
