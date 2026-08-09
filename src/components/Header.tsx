@@ -6,7 +6,13 @@ import { useEffect, useState } from "react";
 import { navLinks } from "@/data/site";
 import AuthNav, { AuthNavMobile } from "@/components/auth/AuthNav";
 
-export default function Header({ luxury = false }: { luxury?: boolean }) {
+export default function Header({
+  luxury = false,
+  a2p = false,
+}: {
+  luxury?: boolean;
+  a2p?: boolean;
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -26,9 +32,13 @@ export default function Header({ luxury = false }: { luxury?: boolean }) {
     ? scrolled
       ? "border-b border-[#c9a227]/20 bg-[#050505]/95 shadow-lg shadow-black/40 backdrop-blur-md"
       : "bg-transparent"
-    : scrolled
-      ? "border-b border-white/10 bg-navy/95 shadow-lg shadow-navy/10 backdrop-blur-md"
-      : "bg-transparent";
+    : a2p
+      ? scrolled
+        ? "border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur-md"
+        : "border-b border-slate-200 bg-white"
+      : scrolled
+        ? "border-b border-white/10 bg-navy/95 shadow-lg shadow-navy/10 backdrop-blur-md"
+        : "bg-transparent";
 
   return (
     <header className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${shellClass}`}>
@@ -38,14 +48,16 @@ export default function Header({ luxury = false }: { luxury?: boolean }) {
             className={`flex h-9 w-9 items-center justify-center text-sm font-bold transition-transform group-hover:scale-105 ${
               luxury
                 ? "rounded-sm bg-[#c9a227] text-[#050505]"
-                : "rounded-md bg-mdc-blue text-white"
+                : a2p
+                  ? "rounded-md bg-mdc-blue text-white"
+                  : "rounded-md bg-mdc-blue text-white"
             }`}
           >
             MDC
           </span>
           <span
             className={`hidden font-serif text-lg tracking-tight sm:block ${
-              luxury ? "text-[#f8f4ec]" : "text-white"
+              luxury ? "text-[#f8f4ec]" : a2p ? "text-slate-900" : "text-white"
             }`}
           >
             MDC Capital Holdings
@@ -64,9 +76,13 @@ export default function Header({ luxury = false }: { luxury?: boolean }) {
                     ? active
                       ? "text-[#c9a227]"
                       : "text-[#eae6dc]/65 hover:text-[#c9a227]"
-                    : active
-                      ? "text-white"
-                      : "text-white/70 hover:text-white"
+                    : a2p
+                      ? active
+                        ? "text-mdc-blue"
+                        : "text-slate-600 hover:text-mdc-blue"
+                      : active
+                        ? "text-white"
+                        : "text-white/70 hover:text-white"
                 }`}
               >
                 {link.label}
@@ -76,7 +92,7 @@ export default function Header({ luxury = false }: { luxury?: boolean }) {
         </nav>
 
         <div className="flex items-center gap-4">
-          <AuthNav luxury={luxury} />
+          <AuthNav luxury={luxury} a2p={a2p} />
           <button
             type="button"
             aria-label="Toggle menu"
@@ -85,7 +101,9 @@ export default function Header({ luxury = false }: { luxury?: boolean }) {
             className={`inline-flex h-10 w-10 items-center justify-center lg:hidden ${
               luxury
                 ? "rounded-sm border border-[#c9a227]/30 text-[#eae6dc]"
-                : "rounded-md border border-white/20 text-white"
+                : a2p
+                  ? "rounded-md border border-slate-300 text-slate-700"
+                  : "rounded-md border border-white/20 text-white"
             }`}
           >
             <span className="sr-only">Menu</span>
@@ -109,7 +127,11 @@ export default function Header({ luxury = false }: { luxury?: boolean }) {
       {menuOpen && (
         <div
           className={`border-t px-6 py-6 lg:hidden ${
-            luxury ? "border-[#c9a227]/15 bg-[#050505]" : "border-white/10 bg-navy"
+            luxury
+              ? "border-[#c9a227]/15 bg-[#050505]"
+              : a2p
+                ? "border-slate-200 bg-white"
+                : "border-white/10 bg-navy"
           }`}
         >
           <nav className="flex flex-col gap-4">
@@ -124,14 +146,18 @@ export default function Header({ luxury = false }: { luxury?: boolean }) {
                       ? active
                         ? "text-[#c9a227]"
                         : "text-[#eae6dc]/80 hover:text-[#c9a227]"
-                      : "text-white/90 hover:text-white"
+                      : a2p
+                        ? active
+                          ? "text-mdc-blue"
+                          : "text-slate-700 hover:text-mdc-blue"
+                        : "text-white/90 hover:text-white"
                   }`}
                 >
                   {link.label}
                 </Link>
               );
             })}
-            <AuthNavMobile luxury={luxury} onNavigate={() => setMenuOpen(false)} />
+            <AuthNavMobile luxury={luxury} a2p={a2p} onNavigate={() => setMenuOpen(false)} />
           </nav>
         </div>
       )}

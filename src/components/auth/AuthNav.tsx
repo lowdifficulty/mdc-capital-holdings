@@ -9,7 +9,13 @@ interface SessionUser {
   name: string;
 }
 
-export default function AuthNav({ luxury = false }: { luxury?: boolean }) {
+export default function AuthNav({
+  luxury = false,
+  a2p = false,
+}: {
+  luxury?: boolean;
+  a2p?: boolean;
+}) {
   const router = useRouter();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [checked, setChecked] = useState(false);
@@ -31,11 +37,15 @@ export default function AuthNav({ luxury = false }: { luxury?: boolean }) {
 
   const loginClass = luxury
     ? "inline-flex rounded-sm border border-[#c9a227]/50 px-4 py-2 text-sm font-medium uppercase tracking-wide text-[#eae6dc] transition-colors hover:border-[#c9a227] hover:bg-[#c9a227]/10"
-    : "inline-flex rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10";
+    : a2p
+      ? "inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:border-mdc-blue hover:text-mdc-blue"
+      : "inline-flex rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10";
 
   const loginPlaceholderClass = luxury
     ? "inline-flex rounded-sm border border-[#c9a227]/25 px-4 py-2 text-sm font-medium uppercase tracking-wide text-[#eae6dc]/40"
-    : "inline-flex rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white/50";
+    : a2p
+      ? "inline-flex rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-400"
+      : "inline-flex rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white/50";
 
   if (!checked) {
     return (
@@ -53,7 +63,9 @@ export default function AuthNav({ luxury = false }: { luxury?: boolean }) {
           className={
             luxury
               ? "text-sm font-medium uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:text-[#c9a227]"
-              : "text-sm font-medium text-white/70 transition-colors hover:text-white"
+              : a2p
+                ? "text-sm font-medium text-slate-600 transition-colors hover:text-mdc-blue"
+                : "text-sm font-medium text-white/70 transition-colors hover:text-white"
           }
         >
           Dashboard
@@ -64,7 +76,9 @@ export default function AuthNav({ luxury = false }: { luxury?: boolean }) {
           className={
             luxury
               ? "rounded-sm border border-[#c9a227]/40 px-4 py-2 text-sm font-medium uppercase tracking-wide text-[#eae6dc] transition-colors hover:border-[#c9a227] hover:bg-[#c9a227]/10"
-              : "rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10"
+              : a2p
+                ? "rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:border-mdc-blue"
+                : "rounded-full border border-white/25 px-4 py-2 text-sm font-medium text-white transition-colors hover:border-white hover:bg-white/10"
           }
         >
           Sign out
@@ -82,9 +96,11 @@ export default function AuthNav({ luxury = false }: { luxury?: boolean }) {
 
 export function AuthNavMobile({
   luxury = false,
+  a2p = false,
   onNavigate,
 }: {
   luxury?: boolean;
+  a2p?: boolean;
   onNavigate?: () => void;
 }) {
   const router = useRouter();
@@ -106,7 +122,9 @@ export function AuthNavMobile({
 
   const linkClass = luxury
     ? "text-base font-medium uppercase tracking-wide text-[#eae6dc]/80 hover:text-[#c9a227]"
-    : "text-base font-medium text-white/90 hover:text-white";
+    : a2p
+      ? "text-base font-medium text-slate-700 hover:text-mdc-blue"
+      : "text-base font-medium text-white/90 hover:text-white";
 
   if (user) {
     return (

@@ -4,6 +4,7 @@ interface LegalDocumentProps {
   title: string;
   description: string;
   lastUpdated: string;
+  a2p?: boolean;
   children: React.ReactNode;
 }
 
@@ -11,8 +12,32 @@ export default function LegalDocument({
   title,
   description,
   lastUpdated,
+  a2p = false,
   children,
 }: LegalDocumentProps) {
+  if (a2p) {
+    return (
+      <>
+        <section className="border-b border-slate-200 bg-slate-50">
+          <div className="mx-auto max-w-3xl px-6 py-14 lg:px-8">
+            <h1 className="font-serif text-3xl tracking-tight text-slate-900 md:text-4xl">
+              {title}
+            </h1>
+            <p className="mt-4 text-base leading-relaxed text-slate-600">{description}</p>
+          </div>
+        </section>
+        <section className="pb-24 md:pb-32">
+          <div className="mx-auto max-w-3xl px-6 lg:px-8">
+            <p className="text-sm text-slate-500">Last updated: {lastUpdated}</p>
+            <div className="prose-legal mt-10 space-y-10 text-base leading-relaxed text-slate-600">
+              {children}
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  }
+
   return (
     <>
       <Hero compact luxury headline={title} body={description} />

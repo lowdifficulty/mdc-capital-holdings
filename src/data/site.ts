@@ -250,23 +250,39 @@ export const principles = [
 
 export const companyLegal = {
   name: "MDC Capital Holdings",
+  /** Legal entity name as registered for tax / A2P brand (must match EIN registration). */
+  legalEntityName: "MDC Capital Holdings, LLC",
+  ein: "39-3343074",
   siteUrl: "https://mdccapitalholdings.com",
   contactEmail: "hello@mdccapitalholdings.com",
   businessPhone: "+19497558994",
   businessPhoneDisplay: "(949) 755-8994",
   smsProgramName: "MDC Capital Holdings SMS Program",
-  lastUpdated: "June 18, 2026",
+  businessAddress: {
+    line1: "1621 Central Ave",
+    city: "Cheyenne",
+    state: "WY",
+    postalCode: "82001",
+    country: "United States",
+  },
+  lastUpdated: "August 9, 2026",
 } as const;
+
+export function formatBusinessAddress(): string {
+  const a = companyLegal.businessAddress;
+  return `${a.line1}, ${a.city}, ${a.state} ${a.postalCode}, ${a.country}`;
+}
 
 export const legalLinks = [
   { href: "/privacy-policy", label: "Privacy Policy" },
   { href: "/terms-and-conditions", label: "Terms & Conditions" },
 ] as const;
 
+/** Public site navigation — A2P / business verification (Twilio, Grasshopper / TCR). */
 export const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/strategy", label: "Strategy" },
-  { href: "/portfolio", label: "Portfolio" },
   { href: "/about", label: "About" },
+  { href: "/services", label: "Services" },
   { href: "/contact", label: "Contact" },
+  { href: "/sms-opt-in", label: "SMS Opt-In" },
 ];

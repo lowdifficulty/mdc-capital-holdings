@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalDocument, { LegalLink, LegalSection } from "@/components/LegalDocument";
-import { companyLegal } from "@/data/site";
+import { companyLegal, formatBusinessAddress } from "@/data/site";
 import { smsPrivacyNotice, smsMessageFlowDescription } from "@/data/a2p";
 
 export const metadata: Metadata = {
@@ -10,10 +10,19 @@ export const metadata: Metadata = {
 };
 
 export default function PrivacyPolicyPage() {
-  const { name, siteUrl, contactEmail, businessPhoneDisplay, lastUpdated } = companyLegal;
+  const {
+    name,
+    legalEntityName,
+    siteUrl,
+    contactEmail,
+    businessPhoneDisplay,
+    lastUpdated,
+  } = companyLegal;
+  const address = formatBusinessAddress();
 
   return (
     <LegalDocument
+      a2p
       title="Privacy Policy"
       description="How we collect, use, and protect your information when you contact us or opt in to SMS updates."
       lastUpdated={lastUpdated}
@@ -83,7 +92,8 @@ export default function PrivacyPolicyPage() {
         <p>{smsMessageFlowDescription}</p>
         <p>
           You may opt in through our{" "}
-          <LegalLink href="/contact">contact form</LegalLink> or by texting{" "}
+          <LegalLink href="/sms-opt-in">SMS opt-in form</LegalLink>, our{" "}
+          <LegalLink href="/contact">contact form</LegalLink>, or by texting{" "}
           <strong className="text-navy">START</strong> to {businessPhoneDisplay}.
         </p>
       </LegalSection>
@@ -128,6 +138,10 @@ export default function PrivacyPolicyPage() {
           <li>
             <strong className="text-navy">Twilio</strong> — SMS message delivery when you
             opt in to text messages
+          </li>
+          <li>
+            <strong className="text-navy">Grasshopper</strong> — business phone and SMS
+            services, when used for your communications with us
           </li>
           <li>
             <strong className="text-navy">Resend</strong> — transactional email, when
@@ -202,8 +216,19 @@ export default function PrivacyPolicyPage() {
 
       <LegalSection title="Contact us">
         <p>
-          For privacy questions, SMS opt-out assistance, or data requests, email{" "}
-          <LegalLink href={`mailto:${contactEmail}`}>{contactEmail}</LegalLink>.
+          {legalEntityName}
+          <br />
+          {address}
+          <br />
+          Phone: {businessPhoneDisplay}
+          <br />
+          Email:{" "}
+          <LegalLink href={`mailto:${contactEmail}`}>{contactEmail}</LegalLink>
+        </p>
+        <p>
+          For privacy questions, SMS opt-out assistance, or data requests, contact us using the
+          information above or visit{" "}
+          <LegalLink href={siteUrl}>{siteUrl.replace("https://", "")}</LegalLink>.
         </p>
       </LegalSection>
     </LegalDocument>

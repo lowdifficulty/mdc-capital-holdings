@@ -14,6 +14,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/intelligence");
 
+  const marketingArchive = pathname === "/marketing-archive";
+
   if (minimal) {
     return (
       <>
@@ -23,13 +25,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (marketingArchive) {
+    return (
+      <>
+        <Header luxury />
+        <main>
+          <SitePageShell>{children}</SitePageShell>
+        </main>
+        <Footer luxury />
+      </>
+    );
+  }
+
   return (
     <>
-      <Header luxury />
-      <main>
-        <SitePageShell>{children}</SitePageShell>
-      </main>
-      <Footer luxury />
+      <Header a2p />
+      <main className="min-h-screen bg-white pt-24 text-slate-900">{children}</main>
+      <Footer a2p />
     </>
   );
 }

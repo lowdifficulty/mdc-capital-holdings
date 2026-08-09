@@ -17,9 +17,9 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 export const metadata: Metadata = {
-  title: "MDC Capital Holdings | Operating Holdings Company",
+  title: "MDC Capital Holdings | Business Information",
   description:
-    "MDC Capital Holdings is an operating holdings company focused on building, acquiring, and scaling small businesses and digital platforms across healthcare, local services, digital health, and technology.",
+    "MDC Capital Holdings — business contact, SMS opt-in, privacy policy, and terms for customers and partners.",
   metadataBase: new URL("https://mdccapitalholdings.com"),
   icons: {
     icon: "/favicon.svg",

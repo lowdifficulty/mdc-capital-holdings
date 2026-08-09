@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import LegalDocument, { LegalLink, LegalSection } from "@/components/LegalDocument";
-import { companyLegal } from "@/data/site";
+import { companyLegal, formatBusinessAddress } from "@/data/site";
 import { smsTerms, smsMessageFlowDescription, smsKeywordOptInNote } from "@/data/a2p";
 
 export const metadata: Metadata = {
@@ -12,9 +12,11 @@ export const metadata: Metadata = {
 export default function TermsAndConditionsPage() {
   const { name, siteUrl, contactEmail, businessPhoneDisplay, smsProgramName, lastUpdated } =
     companyLegal;
+  const address = formatBusinessAddress();
 
   return (
     <LegalDocument
+      a2p
       title="Terms & Conditions"
       description="Terms for using our website and optional SMS text messaging program."
       lastUpdated={lastUpdated}
@@ -174,7 +176,7 @@ export default function TermsAndConditionsPage() {
 
       <LegalSection title="Governing law">
         <p>
-          These Terms are governed by the laws of the State of California, without regard
+          These Terms are governed by the laws of the State of Wyoming, without regard
           to conflict-of-law principles, except where federal telecommunications rules
           apply to SMS messaging.
         </p>
@@ -182,8 +184,14 @@ export default function TermsAndConditionsPage() {
 
       <LegalSection title="Contact">
         <p>
-          Questions about these Terms or our SMS program? Email{" "}
-          <LegalLink href={`mailto:${contactEmail}`}>{contactEmail}</LegalLink>.
+          Questions about these Terms or our SMS program?
+          <br />
+          {address}
+          <br />
+          Phone: {businessPhoneDisplay}
+          <br />
+          Email:{" "}
+          <LegalLink href={`mailto:${contactEmail}`}>{contactEmail}</LegalLink>
         </p>
       </LegalSection>
     </LegalDocument>
