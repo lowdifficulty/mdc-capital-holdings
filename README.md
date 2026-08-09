@@ -90,6 +90,23 @@ Portfolio companies are defined in `src/data/site.ts`. Update the `portfolioComp
 
 ## Deploy (Vercel)
 
+**Production is still the old marketing site until you deploy.** Code on `master` is ready; https://mdccapitalholdings.com will show the A2P homepage only after a successful deploy.
+
+### Fastest on Windows (you must run this on your PC)
+
+```powershell
+cd "C:\Users\Admin\MDC Capital Holdings"
+powershell -ExecutionPolicy Bypass -File scripts/deploy-prod.ps1
+```
+
+Cloud Agents **cannot** complete `vercel deploy` without your Vercel login.
+
+### Auto-deploy on every push (recommended)
+
+One-time GitHub secrets setup — see **`docs/DEPLOY.md`**.
+
+### Manual
+
 ```bash
 npm run build
 vercel deploy --prod
