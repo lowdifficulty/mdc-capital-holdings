@@ -34,11 +34,28 @@ body.site-a2p-mode {
   color: #111827;
 }
 
-.site-a2p .text-navy,
-.site-a2p h1,
-.site-a2p h2,
-.site-a2p h3 {
+/* Do not set heading color globally — it breaks navy hero sections inside .site-a2p */
+.site-a2p .text-navy {
   color: #071a33;
+}
+
+.site-a2p .a2p-hero,
+.site-a2p .a2p-hero h1,
+.site-a2p .a2p-hero h2,
+.site-a2p .a2p-hero p {
+  color: #ffffff;
+}
+
+.site-a2p .a2p-hero .text-white\/80 {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.site-a2p .a2p-hero .text-white\/70 {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.site-a2p .a2p-hero .text-white\/65 {
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .site-a2p .text-slate {

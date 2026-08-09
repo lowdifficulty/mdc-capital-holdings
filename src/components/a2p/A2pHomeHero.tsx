@@ -26,7 +26,7 @@ const quickLinks = [
 
 export default function A2pHomeHero() {
   return (
-    <section className="relative overflow-hidden bg-navy text-white">
+    <section className="a2p-hero relative overflow-hidden bg-navy text-white">
       <div className="pointer-events-none absolute inset-0 hero-noise" />
       <div className="pointer-events-none absolute inset-0 hero-blue-glow" />
       <div className="pointer-events-none absolute inset-0 hero-blue-mesh opacity-60" />
@@ -36,7 +36,10 @@ export default function A2pHomeHero() {
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-white/70">
             Business information
           </p>
-          <h1 className="mt-4 font-serif text-4xl tracking-tight text-white md:text-5xl lg:text-6xl">
+          <h1
+            className="mt-4 font-serif text-4xl tracking-tight text-white md:text-5xl lg:text-6xl"
+            style={{ color: "#ffffff" }}
+          >
             {companyLegal.name}
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-white/80 md:text-xl">

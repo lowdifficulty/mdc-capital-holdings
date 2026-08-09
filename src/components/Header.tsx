@@ -57,7 +57,7 @@ export default function Header({
           </span>
           <span
             className={`hidden font-serif text-lg tracking-tight sm:block ${
-              luxury ? "text-[#f8f4ec]" : a2p ? "text-slate-900" : "text-white"
+                luxury ? "text-[#f8f4ec]" : a2p ? "text-navy" : "text-white"
             }`}
           >
             MDC Capital Holdings

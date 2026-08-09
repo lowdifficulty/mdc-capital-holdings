@@ -16,12 +16,12 @@ export default function Footer({
 }) {
   if (a2p) {
     return (
-      <footer className="border-t border-slate-200 bg-slate-50 text-slate-700">
+      <footer className="border-t border-navy/10 bg-white text-slate">
         <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-3">
             <div>
-              <p className="font-serif text-lg text-slate-900">{companyLegal.name}</p>
-              <p className="mt-1 text-sm text-slate-600">{companyLegal.legalEntityName}</p>
+              <p className="font-serif text-lg text-navy">{companyLegal.name}</p>
+              <p className="mt-1 text-sm text-slate">{companyLegal.legalEntityName}</p>
               <p className="mt-3 text-sm leading-relaxed">{formatBusinessAddress()}</p>
               <p className="mt-2 text-sm">
                 <a href={`tel:${companyLegal.businessPhone}`} className="text-mdc-blue hover:text-navy">
@@ -38,13 +38,13 @@ export default function Footer({
               </p>
             </div>
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-slate">
                 Site
               </h3>
               <ul className="mt-4 space-y-2 text-sm">
                 {navLinks.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-slate-600 hover:text-mdc-blue">
+                    <Link href={link.href} className="text-slate hover:text-mdc-blue">
                       {link.label}
                     </Link>
                   </li>
@@ -52,13 +52,13 @@ export default function Footer({
               </ul>
             </div>
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-slate">
                 Legal
               </h3>
               <ul className="mt-4 space-y-2 text-sm">
                 {legalLinks.map((link) => (
                   <li key={link.href}>
-                    <Link href={link.href} className="text-slate-600 hover:text-mdc-blue">
+                    <Link href={link.href} className="text-slate hover:text-mdc-blue">
                       {link.label}
                     </Link>
                   </li>
@@ -66,7 +66,7 @@ export default function Footer({
               </ul>
             </div>
           </div>
-          <p className="mt-10 border-t border-slate-200 pt-8 text-sm text-slate-500">
+          <p className="mt-10 border-t border-navy/10 pt-8 text-sm text-slate">
             © 2026 {companyLegal.legalEntityName}. All rights reserved.
           </p>
         </div>

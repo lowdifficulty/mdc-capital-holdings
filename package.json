@@ -6,6 +6,7 @@
     "67": "node scripts/start-local.mjs",
     "local": "node scripts/start-local.mjs",
     "dev": "next dev -p 3001",
+    "dev:clean": "node scripts/restart-dev.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
