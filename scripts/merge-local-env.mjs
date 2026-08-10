@@ -1,7 +1,5 @@
 /**
  * Merge Twilio + admin vars into .env.local for local dev.
- * Does not print secret values.
- *
  * Usage: npm run env:local
  */
 
@@ -10,8 +8,8 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 const ENV_PATH = ".env.local";
 const EXAMPLE_PATH = ".env.example";
 
-function parseEnv(text: string): Map<string, string> {
-  const map = new Map<string, string>();
+function parseEnv(text) {
+  const map = new Map();
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#")) continue;
@@ -30,7 +28,7 @@ function parseEnv(text: string): Map<string, string> {
   return map;
 }
 
-function serializeEnv(map: Map<string, string>): string {
+function serializeEnv(map) {
   const keys = [
     "SESSION_SECRET",
     "ADMIN_EMAIL",
@@ -68,4 +66,4 @@ writeFileSync(ENV_PATH, serializeEnv(existing), "utf8");
 
 console.log("Updated .env.local with Twilio/admin keys from .env.example where missing.");
 console.log("Required: set TWILIO_ACCOUNT_SID (AC…) from https://console.twilio.com");
-console.log("Then paste your API keys if empty and run: npm run dev:clean");
+console.log("Then run: npm run dev:clean");
