@@ -28,6 +28,7 @@
 /data/quiver/
 /data/quiver/.api-key
 /data/wellness/
+/data/sms/
 
 # debug
 npm-debug.log*

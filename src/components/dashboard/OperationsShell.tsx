@@ -6,6 +6,7 @@ import ThemeToggle from "@/components/dashboard/ThemeToggle";
 
 const OPS_NAV: { href: string; label: string; exact?: boolean }[] = [
   { href: "/dashboard", label: "Operations", exact: true },
+  { href: "/dashboard/sms", label: "SMS" },
   { href: "/dashboard/projects", label: "Projects" },
   { href: "/intelligence", label: "Intelligence" },
 ];
