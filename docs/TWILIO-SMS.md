@@ -18,14 +18,32 @@ After login: **Command center → SMS** (`/dashboard/sms`)
 
 | Variable | Description |
 |----------|-------------|
-| `TWILIO_ACCOUNT_SID` | Account SID (`AC…`) from [Twilio Console](https://console.twilio.com) |
-| `TWILIO_API_KEY_SID` | API Key SID (`SK…`) |
-| `TWILIO_API_KEY_SECRET` | API Key secret |
-| `TWILIO_PHONE_NUMBER` | Your Twilio SMS-enabled number in E.164 (e.g. `+19497558994`) |
+| `TWILIO_ACCOUNT_SID` | **Required.** Account SID (`AC…`) on [Twilio Console](https://console.twilio.com) home |
+| `TWILIO_API_KEY_SID` | API Key SID (`SK…`) **or** use auth token below |
+| `TWILIO_API_KEY_SECRET` | API Key secret (pair with `SK…`) |
+| `TWILIO_AUTH_TOKEN` | **Alternative** to API key: main Auth Token from console |
+| `TWILIO_PHONE_NUMBER` | Twilio SMS-enabled number in E.164 (e.g. `+19497558994`) |
 
-Add the same variables in **Vercel → Project → Settings → Environment Variables** for Production (and Preview if needed).
+### Local dev (Windows)
 
-Local: copy `.env.example` to `.env.local` and fill values. **Never commit `.env.local`.**
+**Option A — interactive**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-local-twilio.ps1
+npm run dev:clean
+```
+
+**Option B — manual**
+
+Create `.env.local` in the project root (copy from `.env.example`), fill values, then:
+
+```powershell
+npm run dev:clean
+```
+
+`vercel env pull` often writes `[SENSITIVE]` placeholders — **paste real values by hand** or use Option A.
+
+Restart dev after any `.env.local` change.
 
 ## Security
 

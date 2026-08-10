@@ -31,6 +31,7 @@ export default function SmsConsolePanel() {
   const [twilioOk, setTwilioOk] = useState<boolean | null>(null);
   const [fromNumber, setFromNumber] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [missing, setMissing] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [sending, setSending] = useState(false);
@@ -52,6 +53,7 @@ export default function SmsConsolePanel() {
       const data = await contactsRes.json();
       setContacts(data.contacts ?? []);
       if (data.twilioHint) setHint(data.twilioHint);
+      if (Array.isArray(data.missing)) setMissing(data.missing);
     }
     if (messagesRes.ok) {
       const data = await messagesRes.json();
@@ -62,6 +64,7 @@ export default function SmsConsolePanel() {
       setTwilioOk(data.configured);
       setFromNumber(data.fromNumber);
       if (data.hint) setHint(data.hint);
+      if (Array.isArray(data.missing)) setMissing(data.missing);
     }
   }, [filter]);
 
@@ -149,6 +152,13 @@ export default function SmsConsolePanel() {
         <div className="rounded-sm border border-amber-500/40 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
           <p className="font-semibold">Twilio not connected</p>
           <p className="mt-1 text-amber-100/80">{hint}</p>
+          {missing.length > 0 && (
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-100/90">
+              {missing.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
       {twilioOk && fromNumber && (

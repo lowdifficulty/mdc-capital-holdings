@@ -8,7 +8,11 @@ export function getTwilioClient() {
     throw new Error("Twilio is not configured.");
   }
 
-  return twilio(config.apiKeySid, config.apiKeySecret, {
+  if (config.authToken) {
+    return twilio(config.accountSid, config.authToken);
+  }
+
+  return twilio(config.apiKeySid!, config.apiKeySecret!, {
     accountSid: config.accountSid,
   });
 }

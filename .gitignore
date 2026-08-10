@@ -30,7 +30,8 @@
 /data/wellness/
 /data/sms/
 
-# debug
+.env.local.twilio
+.env.local.bak
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/session";
-import { getTwilioConfig, twilioConfigHint } from "@/lib/twilio/config";
+import { getTwilioConfig, listMissingTwilioEnv, twilioConfigHint } from "@/lib/twilio/config";
 import { createContact, deleteContact, listContacts } from "@/lib/sms/store";
 
 export async function GET(request: Request) {
@@ -11,10 +11,12 @@ export async function GET(request: Request) {
     const contacts = await listContacts(
       kind === "lead" || kind === "client" ? kind : undefined,
     );
+    const missing = listMissingTwilioEnv();
     const twilio = getTwilioConfig();
     return NextResponse.json({
       contacts,
       twilioConfigured: Boolean(twilio),
+      missing,
       twilioHint: twilio ? null : twilioConfigHint(),
     });
   } catch {
