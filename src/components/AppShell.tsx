@@ -4,7 +4,6 @@ import { usePathname } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import SitePageShell from "@/components/SitePageShell";
-import DashboardThemeApplier from "@/components/dashboard/DashboardThemeApplier";
 import A2pBodyTheme from "@/components/a2p/A2pBodyTheme";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -20,7 +19,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (minimal) {
     return (
       <>
-        <DashboardThemeApplier />
+        <A2pBodyTheme />
         {children}
       </>
     );

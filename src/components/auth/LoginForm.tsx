@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { companyLegal } from "@/data/site";
+import { portalBtnPrimary, portalInput } from "@/components/platform/portal-ui";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -37,35 +39,31 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="dashboard-wayne relative min-h-screen text-[#eae6dc]">
-      <div className="pointer-events-none fixed inset-0 dashboard-wayne-texture" aria-hidden />
-      <div className="pointer-events-none fixed inset-0 dashboard-wayne-gold-wash" aria-hidden />
+    <div className="site-a2p min-h-screen bg-light-gray text-dark-text">
+      <section className="a2p-hero relative flex min-h-screen flex-col overflow-hidden bg-navy text-white">
+        <div className="pointer-events-none absolute inset-0 hero-noise" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 hero-blue-glow" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 hero-blue-mesh opacity-60" aria-hidden />
 
-      <div className="relative flex min-h-screen flex-col">
         <div className="relative flex flex-1 items-center justify-center px-6 py-16">
           <div className="w-full max-w-md">
-            <Link href="/" className="mb-10 flex items-center justify-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-sm bg-[#c9a227] text-sm font-bold text-[#050505]">
+            <Link href="/" className="mb-10 flex flex-col items-center gap-2 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-mdc-blue text-sm font-bold text-white shadow-lg shadow-mdc-blue/40">
                 MDC
               </span>
-              <span className="font-serif text-xl text-[#f8f4ec]">MDC Capital Holdings</span>
+              <span className="font-serif text-2xl text-white">{companyLegal.name}</span>
+              <span className="text-sm text-white/70">Client & operations portal</span>
             </Link>
 
-            <div className="rounded-sm border border-[#c9a227]/20 bg-[#111]/90 p-8 backdrop-blur-sm">
-              <p className="text-center text-xs font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
-                Command center
-              </p>
-              <h1 className="mt-2 text-center font-serif text-2xl text-[#f8f4ec]">Sign in</h1>
-              <p className="mt-2 text-center text-sm text-[#eae6dc]/55">
-                Access the operations dashboard
+            <div className="rounded-2xl border border-white/15 bg-white/10 p-8 backdrop-blur-md">
+              <h1 className="text-center font-serif text-2xl text-white">Sign in</h1>
+              <p className="mt-2 text-center text-sm text-white/70">
+                SMS, calling, CRM, and Meta — one workspace
               </p>
 
               <form onSubmit={handleSubmit} className="mt-8 space-y-4">
                 <div>
-                  <label
-                    htmlFor="username"
-                    className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[#eae6dc]/70"
-                  >
+                  <label htmlFor="username" className="mb-1.5 block text-xs font-medium text-white/80">
                     Username
                   </label>
                   <input
@@ -74,15 +72,12 @@ export default function LoginForm() {
                     autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full rounded-sm border border-[#c9a227]/20 bg-black/30 px-4 py-3 text-sm text-[#eae6dc] placeholder:text-[#eae6dc]/30 outline-none focus:border-[#c9a227] focus:ring-2 focus:ring-[#c9a227]/25"
+                    className="w-full rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-mdc-blue focus:ring-2 focus:ring-mdc-blue/30"
                     required
                   />
                 </div>
                 <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[#eae6dc]/70"
-                  >
+                  <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-white/80">
                     Password
                   </label>
                   <input
@@ -91,25 +86,31 @@ export default function LoginForm() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-sm border border-[#c9a227]/20 bg-black/30 px-4 py-3 text-sm text-[#eae6dc] placeholder:text-[#eae6dc]/30 outline-none focus:border-[#c9a227] focus:ring-2 focus:ring-[#c9a227]/25"
+                    className="w-full rounded-lg border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 outline-none focus:border-mdc-blue focus:ring-2 focus:ring-mdc-blue/30"
                     required
                   />
                 </div>
 
-                {error && <p className="text-sm text-red-300">{error}</p>}
+                {error && <p className="text-sm text-red-200">{error}</p>}
 
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-sm bg-[#c9a227] px-6 py-3 text-sm font-semibold uppercase tracking-wide text-[#050505] transition hover:bg-[#e0c56a] disabled:opacity-50"
+                  className={`${portalBtnPrimary} w-full justify-center !shadow-lg`}
                 >
-                  {loading ? "Signing in…" : "Sign in"}
+                  {loading ? "Signing in…" : "Enter portal"}
                 </button>
               </form>
             </div>
+
+            <p className="mt-8 text-center text-xs text-white/50">
+              <Link href="/" className="underline hover:text-white">
+                Back to public site
+              </Link>
+            </p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }

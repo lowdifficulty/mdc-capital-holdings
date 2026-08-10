@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import ThemeToggle from "@/components/dashboard/ThemeToggle";
+import { companyLegal } from "@/data/site";
+import GrasshopperDialer from "@/components/platform/GrasshopperDialer";
+import { openPortalDialer } from "@/lib/platform/portal-dialer";
+import {
+  portalBtnCall,
+  portalBtnSms,
+  portalNavActive,
+  portalNavIdle,
+} from "@/components/platform/portal-ui";
 
 const OPS_NAV: { href: string; label: string; exact?: boolean }[] = [
   { href: "/dashboard", label: "Inbox", exact: true },
@@ -13,7 +21,7 @@ const OPS_NAV: { href: string; label: string; exact?: boolean }[] = [
 
 export default function OperationsShell({
   children,
-  title = "MDC Platform",
+  title = "Client portal",
   subtitle,
 }: {
   children: React.ReactNode;
@@ -29,61 +37,76 @@ export default function OperationsShell({
   }
 
   return (
-    <div className="dashboard-wayne relative min-h-screen text-[#eae6dc]">
-      <div className="pointer-events-none fixed inset-0 dashboard-wayne-texture" aria-hidden />
-      <div className="pointer-events-none fixed inset-0 dashboard-wayne-gold-wash" aria-hidden />
+    <div className="site-a2p min-h-screen bg-light-gray text-dark-text">
+      <header className="a2p-hero relative overflow-hidden bg-navy text-white shadow-lg">
+        <div className="pointer-events-none absolute inset-0 hero-noise" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 hero-blue-glow" aria-hidden />
 
-      <header className="sticky top-0 z-[60] border-b border-[#c9a227]/15 bg-[#050505]/95 backdrop-blur-md">
-        <div className="relative z-10 mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <Link
-              href="/"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-[#c9a227] text-xs font-bold text-[#050505]"
-            >
-              MDC
-            </Link>
-            <div className="min-w-0">
-              <p className="truncate text-xs font-medium uppercase tracking-[0.2em] text-[#c9a227]/80">
-                Command center
-              </p>
-              <p className="truncate font-serif text-sm text-[#f8f4ec] sm:text-base">{title}</p>
-              {subtitle && (
-                <p className="hidden truncate text-xs text-[#eae6dc]/45 lg:block">{subtitle}</p>
-              )}
+        <div className="relative mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <Link
+                href="/"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-mdc-blue text-xs font-bold text-white shadow-md"
+              >
+                MDC
+              </Link>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/70">
+                  {companyLegal.name}
+                </p>
+                <p className="truncate font-serif text-lg text-white sm:text-xl">{title}</p>
+                {subtitle && (
+                  <p className="hidden truncate text-xs text-white/65 sm:block">{subtitle}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openPortalDialer({ tab: "sms" })}
+                className={`${portalBtnSms} !py-2.5`}
+              >
+                Text
+              </button>
+              <button
+                type="button"
+                onClick={() => openPortalDialer({ tab: "call" })}
+                className={`${portalBtnCall} !py-2.5`}
+              >
+                Click to call
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleLogout()}
+                className="rounded-full border border-white/30 px-4 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10"
+              >
+                Sign out
+              </button>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <ThemeToggle />
-            <button
-              type="button"
-              onClick={() => void handleLogout()}
-              className="rounded-sm border border-[#c9a227]/35 px-3 py-1.5 text-sm uppercase tracking-wide text-[#eae6dc]/70 transition-colors hover:border-[#c9a227] hover:text-[#c9a227]"
-            >
-              Sign out
-            </button>
-          </div>
+
+          <nav className="mt-4 flex gap-2 overflow-x-auto pb-1">
+            {OPS_NAV.map((item) => {
+              const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? portalNavActive : portalNavIdle}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <nav className="relative z-10 mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 pb-3 sm:px-6 lg:px-8">
-          {OPS_NAV.map((item) => {
-            const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`touch-manipulation shrink-0 rounded-sm px-4 py-2 text-sm font-bold uppercase tracking-wide transition ${
-                  active
-                    ? "bg-[#c9a227] text-[#050505] shadow-lg shadow-[#c9a227]/20"
-                    : "border border-[#c9a227]/20 text-[#eae6dc]/65 hover:border-[#c9a227]/40 hover:text-[#c9a227]"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
       </header>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-3 py-4 sm:px-6 sm:py-8 lg:px-8">{children}</div>
+      <div className="mx-auto max-w-7xl px-3 py-6 sm:px-6 lg:px-8">{children}</div>
+
+      <GrasshopperDialer />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { portalBtnPrimary, portalCard } from "@/components/platform/portal-ui";
 
 export default function IntegrationsPanel() {
   const searchParams = useSearchParams();
@@ -83,19 +84,19 @@ export default function IntegrationsPanel() {
   return (
     <div className="space-y-6">
       {banner && (
-        <p className="rounded-sm border border-[#c9a227]/30 bg-[#c9a227]/10 px-4 py-3 text-sm text-[#f8f4ec]">
+        <p className="rounded-xl border border-mdc-blue/20 bg-soft-blue px-4 py-3 text-sm text-navy">
           {banner}
         </p>
       )}
 
-      <section className="rounded-sm border border-[#c9a227]/15 bg-[#111]/80 p-5 space-y-3">
-        <h2 className="font-serif text-lg text-[#f8f4ec]">Twilio · SMS &amp; voice</h2>
-        <p className="text-sm text-[#eae6dc]/60">
+      <section className={`${portalCard} space-y-3`}>
+        <h2 className="font-serif text-lg text-navy">Twilio · SMS &amp; voice</h2>
+        <p className="text-sm text-slate">
           Powers outbound SMS and click-to-call from Inbox and Calls.
         </p>
         <p className="text-sm">
           Status:{" "}
-          <span className={twilio.configured ? "text-emerald-300" : "text-amber-200"}>
+          <span className={twilio.configured ? "text-emerald-700 font-medium" : "text-amber-700"}>
             {twilio.configured ? "Connected" : "Not configured"}
           </span>
         </p>
@@ -111,15 +112,15 @@ export default function IntegrationsPanel() {
         )}
       </section>
 
-      <section className="rounded-sm border border-[#c9a227]/15 bg-[#111]/80 p-5 space-y-4">
-        <h2 className="font-serif text-lg text-[#f8f4ec]">Meta · Messenger &amp; Instagram DMs</h2>
-        <p className="text-sm text-[#eae6dc]/60">
+      <section className={`${portalCard} space-y-4`}>
+        <h2 className="font-serif text-lg text-navy">Meta · Messenger &amp; Instagram DMs</h2>
+        <p className="text-sm text-slate">
           Connect your Facebook Page to receive and reply to DMs in the unified Inbox alongside SMS and
           calls.
         </p>
         <p className="text-sm">
           Status:{" "}
-          <span className={meta.connected ? "text-emerald-300" : "text-amber-200"}>
+          <span className={meta.connected ? "text-emerald-700 font-medium" : "text-amber-700"}>
             {meta.connected ? `Connected · ${meta.pageName}` : "Not connected"}
           </span>
         </p>
@@ -134,11 +135,11 @@ export default function IntegrationsPanel() {
           type="button"
           disabled={!meta.configured || connecting}
           onClick={() => void connectMeta()}
-          className="rounded-sm bg-[#1877f2] px-5 py-2.5 text-sm font-semibold uppercase text-white disabled:opacity-40"
+          className={`${portalBtnPrimary} !bg-[#1877f2] hover:!bg-[#166fe5]`}
         >
           {connecting ? "Redirecting…" : "Connect Meta"}
         </button>
-        <div className="rounded-sm bg-black/40 p-4 text-xs text-[#eae6dc]/55 space-y-2">
+        <div className="rounded-xl bg-slate-50 p-4 text-xs text-slate space-y-2">
           <p className="font-semibold text-[#eae6dc]/75">Webhook setup (Meta Developer App)</p>
           <p>Callback URL: {appUrl}{meta.webhookPath}</p>
           <p>Verify token: same as META_WEBHOOK_VERIFY_TOKEN env var</p>

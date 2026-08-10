@@ -1,6 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import QuickContactActions from "@/components/platform/QuickContactActions";
+import { openPortalDialer } from "@/lib/platform/portal-dialer";
+import {
+  portalBtnCall,
+  portalBtnPrimary,
+  portalBtnSms,
+  portalCard,
+  portalInput,
+} from "@/components/platform/portal-ui";
 import type { MessageChannel, PipelineStage } from "@/lib/platform/types";
 import { PIPELINE_STAGES } from "@/lib/platform/types";
 
@@ -149,21 +158,14 @@ export default function InboxPanel() {
     }
   }
 
-  async function handleCall() {
-    if (!selectedId || !contact?.phone) return;
-    setError("");
-    const res = await fetch("/api/calls", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contactId: selectedId }),
+  function openSmsComposer() {
+    if (!selectedId || !contact) return;
+    openPortalDialer({
+      tab: "sms",
+      contactId: selectedId,
+      phone: contact.phone,
+      name: contact.name,
     });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Call failed");
-      return;
-    }
-    await loadThread(selectedId);
-    await loadInbox();
   }
 
   async function updateStage(stage: PipelineStage) {
@@ -176,14 +178,15 @@ export default function InboxPanel() {
     await loadThread(selectedId);
   }
 
-  const inputClass =
-    "w-full rounded-sm border border-[#c9a227]/20 bg-black/30 px-3 py-2 text-sm text-[#eae6dc] outline-none focus:border-[#c9a227]";
+  const filterActive = "rounded-full bg-mdc-blue px-3 py-1 text-xs font-semibold text-white";
+  const filterIdle =
+    "rounded-full border border-navy/15 px-3 py-1 text-xs font-semibold text-slate hover:border-mdc-blue/40";
 
   return (
     <div className="grid min-h-[70vh] gap-4 lg:grid-cols-12">
-      <aside className="lg:col-span-4 xl:col-span-3 space-y-3 rounded-sm border border-[#c9a227]/15 bg-[#111]/80 p-3">
+      <aside className={`lg:col-span-4 xl:col-span-3 space-y-3 ${portalCard}`}>
         <input
-          className={inputClass}
+          className={portalInput}
           placeholder="Search conversations"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -194,103 +197,102 @@ export default function InboxPanel() {
               key={f}
               type="button"
               onClick={() => setFilter(f)}
-              className={`rounded-sm px-2 py-1 text-xs font-semibold uppercase ${
-                filter === f ? "bg-[#c9a227] text-[#050505]" : "border border-[#c9a227]/25 text-[#eae6dc]/60"
-              }`}
+              className={filter === f ? filterActive : filterIdle}
             >
               {f === "all" ? "All" : CHANNEL_LABEL[f]}
             </button>
           ))}
         </div>
-        <ul className="max-h-[60vh] space-y-1 overflow-y-auto">
+        <ul className="max-h-[60vh] space-y-2 overflow-y-auto">
           {filteredConversations.length === 0 && (
-            <li className="text-sm text-[#eae6dc]/45 px-2 py-4">No conversations yet. Add contacts in CRM.</li>
+            <li className="text-sm text-slate px-2 py-4">No conversations yet. Add contacts in CRM.</li>
           )}
           {filteredConversations.map((c) => (
             <li key={c.contactId}>
-              <button
-                type="button"
-                onClick={() => setSelectedId(c.contactId)}
-                className={`w-full rounded-sm border px-3 py-2 text-left transition ${
+              <div
+                className={`rounded-xl border px-3 py-2 transition ${
                   selectedId === c.contactId
-                    ? "border-[#c9a227] bg-[#c9a227]/10"
-                    : "border-transparent hover:border-[#c9a227]/20"
+                    ? "border-mdc-blue/40 bg-soft-blue"
+                    : "border-navy/10 hover:border-mdc-blue/25"
                 }`}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-medium text-[#f8f4ec]">{c.contactName}</span>
-                  <span className="text-[10px] text-[#eae6dc]/40">
-                    {new Date(c.lastMessageAt).toLocaleDateString()}
-                  </span>
+                <div className="flex items-start gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(c.contactId)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-navy">{c.contactName}</span>
+                      <span className="text-[10px] text-slate">
+                        {new Date(c.lastMessageAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-slate">{c.preview}</p>
+                  </button>
+                  <QuickContactActions
+                    size="sm"
+                    contactId={c.contactId}
+                    phone={c.phone}
+                    name={c.contactName}
+                    disabledCall={!twilioOk}
+                    disabledSms={!twilioOk}
+                  />
                 </div>
-                <p className="mt-0.5 truncate text-xs text-[#eae6dc]/55">{c.preview}</p>
-                <div className="mt-1 flex gap-1">
-                  {c.channels.map((ch) => (
-                    <span
-                      key={ch}
-                      className="rounded bg-[#c9a227]/15 px-1.5 py-0.5 text-[10px] uppercase text-[#c9a227]"
-                    >
-                      {CHANNEL_LABEL[ch]}
-                    </span>
-                  ))}
-                </div>
-              </button>
+              </div>
             </li>
           ))}
         </ul>
       </aside>
 
-      <section className="lg:col-span-5 xl:col-span-6 flex flex-col rounded-sm border border-[#c9a227]/15 bg-[#111]/80">
+      <section className={`lg:col-span-5 xl:col-span-6 flex flex-col ${portalCard} !p-0 overflow-hidden`}>
         {!selectedId ? (
-          <div className="flex flex-1 items-center justify-center p-8 text-center text-[#eae6dc]/50">
-            Select a conversation to view SMS, calls, and Meta messages in one thread.
+          <div className="flex flex-1 items-center justify-center p-8 text-center text-slate">
+            Select a conversation — or use{" "}
+            <strong className="text-navy">Click to call</strong> / <strong className="text-navy">Text</strong>{" "}
+            in the header.
           </div>
         ) : (
           <>
-            <div className="border-b border-[#c9a227]/10 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="border-b border-navy/10 px-4 py-3 flex flex-wrap items-center justify-between gap-2 bg-soft-blue/50">
               <div>
-                <p className="font-serif text-lg text-[#f8f4ec]">{contact?.name}</p>
-                <p className="text-xs text-[#eae6dc]/50">{contact?.phone || "No phone"}</p>
+                <p className="font-serif text-lg text-navy">{contact?.name}</p>
+                <p className="text-xs text-slate">{contact?.phone || "No phone"}</p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={!contact?.phone || !twilioOk}
-                  onClick={() => void handleCall()}
-                  className="rounded-sm border border-[#c9a227]/40 px-3 py-1.5 text-xs font-semibold uppercase text-[#c9a227] disabled:opacity-40"
-                >
-                  Call
-                </button>
-              </div>
+              <QuickContactActions
+                contactId={selectedId}
+                phone={contact?.phone}
+                name={contact?.name}
+                disabledCall={!twilioOk || !contact?.phone}
+                disabledSms={!twilioOk}
+              />
             </div>
             <ul className="flex-1 space-y-3 overflow-y-auto p-4 max-h-[45vh]">
               {messages.map((m) => (
                 <li
                   key={m.id}
-                  className={`max-w-[85%] rounded-sm px-3 py-2 text-sm ${
+                  className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${
                     m.direction === "out"
-                      ? "ml-auto bg-[#c9a227]/20 text-[#f8f4ec]"
-                      : "mr-auto bg-black/40 text-[#eae6dc]/90"
+                      ? "ml-auto bg-mdc-blue/15 text-navy"
+                      : "mr-auto bg-slate-100 text-dark-text"
                   }`}
                 >
-                  <p className="text-[10px] uppercase tracking-wide text-[#eae6dc]/45">
+                  <p className="text-[10px] uppercase tracking-wide text-slate">
                     {CHANNEL_LABEL[m.channel]} · {m.status}
                   </p>
                   <p className="mt-1">{m.body}</p>
-                  <p className="mt-1 text-[10px] text-[#eae6dc]/40">
+                  <p className="mt-1 text-[10px] text-slate">
                     {new Date(m.sentAt).toLocaleString()}
                   </p>
                 </li>
               ))}
             </ul>
-            <form onSubmit={handleSend} className="border-t border-[#c9a227]/10 p-4 space-y-2">
-              <div className="flex gap-2">
+            <form onSubmit={handleSend} className="border-t border-navy/10 p-4 space-y-2 bg-white">
+              <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setChannel("sms")}
-                  className={`rounded-sm px-3 py-1 text-xs font-semibold uppercase ${
-                    channel === "sms" ? "bg-[#c9a227] text-[#050505]" : "border border-[#c9a227]/25"
-                  }`}
+                  className={channel === "sms" ? portalBtnSms : "rounded-full border border-navy/15 px-4 py-2 text-xs font-bold uppercase text-navy"}
                 >
                   SMS
                 </button>
@@ -298,15 +300,16 @@ export default function InboxPanel() {
                   type="button"
                   disabled={!metaOk || !contact?.metaPsid}
                   onClick={() => setChannel("meta")}
-                  className={`rounded-sm px-3 py-1 text-xs font-semibold uppercase disabled:opacity-40 ${
-                    channel === "meta" ? "bg-[#c9a227] text-[#050505]" : "border border-[#c9a227]/25"
-                  }`}
+                  className={`rounded-full px-4 py-2 text-xs font-bold uppercase ${channel === "meta" ? "bg-navy text-white" : "border border-navy/15 text-navy"} disabled:opacity-40`}
                 >
                   Meta DM
                 </button>
+                <button type="button" onClick={openSmsComposer} className={portalBtnCall}>
+                  Pop-out text
+                </button>
               </div>
               <textarea
-                className={`${inputClass} min-h-[80px] resize-y`}
+                className={`${portalInput} min-h-[80px] resize-y`}
                 value={compose}
                 onChange={(e) => setCompose(e.target.value)}
                 placeholder={
@@ -316,11 +319,11 @@ export default function InboxPanel() {
                 }
                 required
               />
-              {error && <p className="text-sm text-red-300">{error}</p>}
+              {error && <p className="text-sm text-red-600">{error}</p>}
               <button
                 type="submit"
                 disabled={sending || (channel === "sms" && !twilioOk)}
-                className="w-full rounded-sm bg-[#c9a227] py-2.5 text-sm font-semibold uppercase text-[#050505] disabled:opacity-40"
+                className={`${portalBtnPrimary} w-full justify-center`}
               >
                 {sending ? "Sending…" : "Send"}
               </button>
@@ -329,15 +332,15 @@ export default function InboxPanel() {
         )}
       </section>
 
-      <aside className="lg:col-span-3 space-y-4 rounded-sm border border-[#c9a227]/15 bg-[#111]/80 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#c9a227]/80">Contact</p>
+      <aside className={`lg:col-span-3 space-y-4 ${portalCard}`}>
+        <p className="text-xs font-semibold uppercase tracking-wide text-mdc-blue">Contact</p>
         {contact ? (
           <>
-            <p className="text-[#f8f4ec]">{contact.name}</p>
-            <p className="text-sm text-[#eae6dc]/60">{contact.email || "—"}</p>
-            <label className="block text-xs text-[#eae6dc]/45">Pipeline stage</label>
+            <p className="font-serif text-navy">{contact.name}</p>
+            <p className="text-sm text-slate">{contact.email || "—"}</p>
+            <label className="block text-xs text-slate">Pipeline stage</label>
             <select
-              className={inputClass}
+              className={portalInput}
               value={contact.stage}
               onChange={(e) => void updateStage(e.target.value as PipelineStage)}
             >
@@ -347,17 +350,19 @@ export default function InboxPanel() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-[#eae6dc]/45 whitespace-pre-wrap">{contact.notes || "No notes"}</p>
-            {contact.metaPsid ? (
-              <p className="text-xs text-emerald-300/80">Meta linked</p>
-            ) : (
-              <p className="text-xs text-[#eae6dc]/45">Meta: waiting for inbound DM</p>
-            )}
+            <p className="text-xs text-slate whitespace-pre-wrap">{contact.notes || "No notes"}</p>
+            <QuickContactActions
+              contactId={contact.id}
+              phone={contact.phone}
+              name={contact.name}
+              disabledCall={!twilioOk}
+              disabledSms={!twilioOk}
+            />
           </>
         ) : (
-          <p className="text-sm text-[#eae6dc]/45">Select a conversation.</p>
+          <p className="text-sm text-slate">Select a conversation.</p>
         )}
-        <div className="border-t border-[#c9a227]/10 pt-3 text-xs text-[#eae6dc]/45 space-y-1">
+        <div className="border-t border-navy/10 pt-3 text-xs text-slate space-y-1">
           <p>Twilio SMS/Calls: {twilioOk ? "Connected" : "Not configured"}</p>
           <p>Meta DMs: {metaOk ? "Connected" : "Connect in Integrations"}</p>
         </div>

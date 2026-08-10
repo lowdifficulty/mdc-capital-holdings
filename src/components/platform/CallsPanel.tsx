@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { openPortalDialer } from "@/lib/platform/portal-dialer";
+import { portalBtnCall, portalBtnPrimary, portalCard, portalInput } from "@/components/platform/portal-ui";
 
 interface CallLog {
   id: string;
@@ -76,18 +78,27 @@ export default function CallsPanel() {
     }
   }
 
-  const inputClass =
-    "w-full rounded-sm border border-[#c9a227]/20 bg-black/30 px-3 py-2 text-sm text-[#eae6dc] outline-none focus:border-[#c9a227]";
+  const inputClass = portalInput;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      <div className="space-y-4 rounded-sm border border-[#c9a227]/15 bg-[#111]/80 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#c9a227]/80">Dialer</p>
+    <div className="space-y-4">
+      <div className={`${portalCard} flex flex-wrap items-center justify-between gap-3`}>
+        <p className="text-sm text-slate">
+          Use the green <strong className="text-navy">phone button</strong> (bottom-right) for a Grasshopper-style
+          pop-out, or dial below.
+        </p>
+        <button type="button" onClick={() => openPortalDialer({ tab: "call" })} className={portalBtnCall}>
+          Open click-to-call
+        </button>
+      </div>
+      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="space-y-4 rounded-2xl border border-navy/10 bg-white p-4 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-mdc-blue">Dialer</p>
         {twilioOk === false && (
-          <p className="text-sm text-amber-200">Configure Twilio env vars to place calls.</p>
+          <p className="text-sm text-amber-800">Configure Twilio env vars to place calls.</p>
         )}
-        <p className="text-xs text-[#eae6dc]/50">
-          Optional: set <code className="text-[#c9a227]">TWILIO_BRIDGE_PHONE</code> to your mobile — we call
+        <p className="text-xs text-slate">
+          Optional: set <code className="text-mdc-blue">TWILIO_BRIDGE_PHONE</code> to your mobile — we call
           you first, then bridge to the contact (GoHighLevel-style click-to-call).
         </p>
         <form onSubmit={handleCall} className="space-y-3">
@@ -119,30 +130,31 @@ export default function CallsPanel() {
           <button
             type="submit"
             disabled={calling || twilioOk === false}
-            className="w-full rounded-sm bg-[#c9a227] py-3 text-sm font-semibold uppercase text-[#050505] disabled:opacity-40"
+            className={`${portalBtnPrimary} w-full justify-center !bg-emerald-600 !shadow-emerald-600/30 hover:!bg-emerald-700`}
           >
             {calling ? "Calling…" : "Start call"}
           </button>
         </form>
       </div>
 
-      <div className="rounded-sm border border-[#c9a227]/15 bg-[#111]/80 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#c9a227]/80">Call log</p>
+      <div className={`${portalCard}`}>
+        <p className="text-xs font-semibold uppercase tracking-wide text-mdc-blue">Call log</p>
         <ul className="mt-3 max-h-[420px] space-y-2 overflow-y-auto text-sm">
-          {calls.length === 0 && <li className="text-[#eae6dc]/45">No calls yet.</li>}
+          {calls.length === 0 && <li className="text-slate">No calls yet.</li>}
           {calls.map((c) => (
-            <li key={c.id} className="rounded-sm border border-[#c9a227]/10 px-3 py-2">
-              <div className="flex justify-between text-xs text-[#eae6dc]/45">
+            <li key={c.id} className="rounded-xl border border-navy/10 px-3 py-2">
+              <div className="flex justify-between text-xs text-slate">
                 <span>{c.to}</span>
                 <span>{new Date(c.startedAt).toLocaleString()}</span>
               </div>
-              <p className="mt-1 text-[#eae6dc]/80">
+              <p className="mt-1 text-dark-text">
                 {c.status}
                 {c.error ? ` · ${c.error}` : ""}
               </p>
             </li>
           ))}
         </ul>
+      </div>
       </div>
     </div>
   );
