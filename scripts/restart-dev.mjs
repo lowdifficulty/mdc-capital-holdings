@@ -3,7 +3,7 @@
  * Usage: npm run dev:clean
  */
 
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import { existsSync, rmSync } from "node:fs";
 import { killPort } from "./local-server.mjs";
 
@@ -11,8 +11,30 @@ const PORT = 3001;
 const isWin = process.platform === "win32";
 const npm = isWin ? "npm.cmd" : "npm";
 
-killPort(PORT);
-killPort(3000);
+function killNextProcesses() {
+  killPort(PORT);
+  killPort(3000);
+  if (isWin) {
+    try {
+      execSync(
+        'powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match \'next\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"',
+        { stdio: "ignore" },
+      );
+    } catch {
+      // ignore
+    }
+  } else {
+    for (const pattern of ["next-server", "next dev"]) {
+      try {
+        execSync(`pkill -f "${pattern}" 2>/dev/null || true`, { shell: true, stdio: "ignore" });
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+killNextProcesses();
 
 if (existsSync(".next")) {
   console.log("Removing .next (fixes blank page / 500 after builds)...");
