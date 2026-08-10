@@ -18,9 +18,11 @@ After **any** of these, restart the dev server before telling the user to check 
 
 ## Restart steps (Windows)
 
-1. Kill processes on ports **3000** and **3001**
-2. Delete the **`.next`** folder
+1. Kill processes on ports **3000** and **3001** (or run **`npm run dev:clean`** — recommended)
+2. Delete the **`.next`** folder if errors persist (`Cannot find module './1331.js'` / `__webpack_modules__`)
 3. Run **`npm run dev`**
 4. Verify **http://localhost:3001** returns 200 before reporting success
+
+`npm run dev` now auto-removes a stale **production** `.next` left over from `npm run build`. If dev was running during a build, still use **`npm run dev:clean`**.
 
 Do not assume localhost works without restarting after a production build.

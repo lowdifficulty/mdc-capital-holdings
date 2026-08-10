@@ -5,9 +5,10 @@
   "scripts": {
     "67": "node scripts/start-local.mjs",
     "local": "node scripts/start-local.mjs",
-    "dev": "next dev -p 3001",
+    "dev": "node scripts/before-dev.mjs && next dev -p 3001",
     "dev:clean": "node scripts/restart-dev.mjs",
     "build": "next build",
+    "postbuild": "node -e \"console.warn('\\nAfter npm run build, restart dev with: npm run dev:clean\\n')\"",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run"
