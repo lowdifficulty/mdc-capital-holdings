@@ -29,6 +29,7 @@
 /data/quiver/.api-key
 /data/wellness/
 /data/sms/
+/data/platform/
 
 .env.local.twilio
 .env.local.bak
