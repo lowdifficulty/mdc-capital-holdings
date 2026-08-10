@@ -1,6 +1,7 @@
 import "server-only";
 import twilio from "twilio";
 import { getTwilioConfig } from "@/lib/twilio/config";
+import { formatTwilioError } from "@/lib/twilio/errors";
 
 export function getTwilioClient() {
   const config = getTwilioConfig();
@@ -24,11 +25,16 @@ export async function sendSms(to: string, body: string) {
   }
 
   const client = getTwilioClient();
-  const message = await client.messages.create({
-    to,
-    from: config.fromNumber,
-    body,
-  });
+  let message;
+  try {
+    message = await client.messages.create({
+      to,
+      from: config.fromNumber,
+      body,
+    });
+  } catch (err) {
+    throw new Error(formatTwilioError(err));
+  }
 
   return {
     sid: message.sid,

@@ -2,6 +2,13 @@ import "server-only";
 import { promises as fs } from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import {
+  isSmsBlobEnabled,
+  readContactsBlob,
+  readMessagesBlob,
+  writeContactsBlob,
+  writeMessagesBlob,
+} from "@/lib/sms/blobStore";
 
 export type ContactKind = "lead" | "client";
 
@@ -36,6 +43,11 @@ async function ensureDir() {
 }
 
 async function readContacts(): Promise<SmsContact[]> {
+  if (isSmsBlobEnabled()) {
+    const blob = await readContactsBlob();
+    if (blob?.contacts) return blob.contacts as SmsContact[];
+    return [];
+  }
   try {
     const raw = await fs.readFile(CONTACTS_FILE, "utf8");
     const parsed = JSON.parse(raw) as { contacts?: SmsContact[] };
@@ -46,11 +58,20 @@ async function readContacts(): Promise<SmsContact[]> {
 }
 
 async function writeContacts(contacts: SmsContact[]) {
+  if (isSmsBlobEnabled()) {
+    await writeContactsBlob({ contacts });
+    return;
+  }
   await ensureDir();
   await fs.writeFile(CONTACTS_FILE, JSON.stringify({ contacts }, null, 2) + "\n", "utf8");
 }
 
 async function readMessages(): Promise<SmsMessageRecord[]> {
+  if (isSmsBlobEnabled()) {
+    const blob = await readMessagesBlob();
+    if (blob?.messages) return blob.messages as SmsMessageRecord[];
+    return [];
+  }
   try {
     const raw = await fs.readFile(MESSAGES_FILE, "utf8");
     const parsed = JSON.parse(raw) as { messages?: SmsMessageRecord[] };
@@ -61,6 +82,10 @@ async function readMessages(): Promise<SmsMessageRecord[]> {
 }
 
 async function writeMessages(messages: SmsMessageRecord[]) {
+  if (isSmsBlobEnabled()) {
+    await writeMessagesBlob({ messages });
+    return;
+  }
   await ensureDir();
   await fs.writeFile(MESSAGES_FILE, JSON.stringify({ messages }, null, 2) + "\n", "utf8");
 }

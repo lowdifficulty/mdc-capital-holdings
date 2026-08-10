@@ -130,6 +130,7 @@ export default function SmsConsolePanel() {
       if (!res.ok) {
         setError(data.error ?? "Send failed");
         if (data.hint) setHint(data.hint);
+        else if (data.error) setHint(null);
         await load();
         return;
       }
@@ -294,6 +295,9 @@ export default function SmsConsolePanel() {
               campaigns.
             </p>
             {error && <p className="text-sm text-red-300">{error}</p>}
+            {error && hint && (
+              <p className="text-sm text-amber-200/90">{hint}</p>
+            )}
             {success && <p className="text-sm text-emerald-300">{success}</p>}
             <button
               type="submit"

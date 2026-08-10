@@ -12,7 +12,7 @@ After login: **Command center → SMS** (`/dashboard/sms`)
 
 - Add **leads** and **clients**
 - Send SMS via Twilio
-- View recent outbound log (stored in `data/sms/` on the server)
+- View recent outbound log (stored in Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set, otherwise `data/sms/` locally)
 
 ## Required environment variables
 
