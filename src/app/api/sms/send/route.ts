@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/session";
-import { appendMessage, normalizePhone } from "@/lib/sms/store";
+import { appendMessage, normalizePhone } from "@/lib/platform/store";
 import { sendSms } from "@/lib/twilio/send";
 import { getTwilioConfig, twilioConfigHint } from "@/lib/twilio/config";
 import { formatTwilioError, twilioErrorHint } from "@/lib/twilio/errors";
@@ -64,9 +64,13 @@ export async function POST(request: Request) {
       try {
         record = await appendMessage({
           contactId: body.contactId ?? null,
+          channel: "sms",
+          direction: "out",
           to,
+          from: config.fromNumber,
           body: brandedBody,
           twilioSid: result.sid,
+          metaMid: null,
           status: result.status ?? "queued",
           error: null,
           sentAt: new Date().toISOString(),
@@ -83,9 +87,13 @@ export async function POST(request: Request) {
       try {
         await appendMessage({
           contactId: body.contactId ?? null,
+          channel: "sms",
+          direction: "out",
           to,
+          from: config.fromNumber,
           body: brandedBody,
           twilioSid: null,
+          metaMid: null,
           status: "failed",
           error: errorMessage,
           sentAt: new Date().toISOString(),

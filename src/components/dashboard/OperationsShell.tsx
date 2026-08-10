@@ -5,15 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "@/components/dashboard/ThemeToggle";
 
 const OPS_NAV: { href: string; label: string; exact?: boolean }[] = [
-  { href: "/dashboard", label: "Operations", exact: true },
-  { href: "/dashboard/sms", label: "SMS" },
-  { href: "/dashboard/projects", label: "Projects" },
-  { href: "/intelligence", label: "Intelligence" },
+  { href: "/dashboard", label: "Inbox", exact: true },
+  { href: "/dashboard/crm", label: "CRM" },
+  { href: "/dashboard/calls", label: "Calls" },
+  { href: "/dashboard/integrations", label: "Integrations" },
 ];
 
 export default function OperationsShell({
   children,
-  title = "Operations Dashboard",
+  title = "MDC Platform",
   subtitle,
 }: {
   children: React.ReactNode;

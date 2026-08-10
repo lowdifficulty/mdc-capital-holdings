@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/session";
 import { getTwilioConfig, listMissingTwilioEnv, twilioConfigHint } from "@/lib/twilio/config";
-import { createContact, deleteContact, listContacts } from "@/lib/sms/store";
+import {
+  createContact,
+  deleteContact,
+  listContacts,
+  migrateLegacySmsIfNeeded,
+} from "@/lib/platform/store";
 
 export async function GET(request: Request) {
   try {
     await requireUser();
+    await migrateLegacySmsIfNeeded();
     const { searchParams } = new URL(request.url);
     const kind = searchParams.get("kind");
     const contacts = await listContacts(
-      kind === "lead" || kind === "client" ? kind : undefined,
+      kind === "lead" || kind === "client" ? { kind } : undefined,
     );
     const missing = listMissingTwilioEnv();
     const twilio = getTwilioConfig();
