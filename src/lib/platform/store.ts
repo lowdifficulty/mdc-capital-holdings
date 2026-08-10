@@ -11,7 +11,6 @@ import type {
   CallLogEntry,
   ContactKind,
   MessageChannel,
-  MessageDirection,
   MetaIntegration,
   PipelineStage,
   PlatformContact,
