@@ -17,17 +17,17 @@ const libreBaskerville = Libre_Baskerville({
 });
 
 export const metadata: Metadata = {
-  title: "MDC Capital Holdings | Business Information",
+  title: "MDC Capital Holdings | Family Office & Operating Holdings",
   description:
-    "MDC Capital Holdings — business contact, SMS opt-in, privacy policy, and terms for customers and partners.",
+    "MDC Capital Holdings is a private holding company focused on long-term stewardship of operating businesses and portfolio companies.",
   metadataBase: new URL("https://mdccapitalholdings.com"),
   icons: {
     icon: "/favicon.svg",
   },
   openGraph: {
-    title: "MDC Capital Holdings | Operating Holdings Company",
+    title: "MDC Capital Holdings | Family Office & Operating Holdings",
     description:
-      "MDC Capital Holdings is an operating holdings company focused on building, acquiring, and scaling small businesses and digital platforms.",
+      "A private holding company focused on building, acquiring, and stewarding operating businesses for the long term.",
     url: "https://mdccapitalholdings.com",
     siteName: "MDC Capital Holdings",
     type: "website",
