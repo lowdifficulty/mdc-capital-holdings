@@ -14,7 +14,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/intelligence");
 
-  const marketingArchive = pathname === "/marketing-archive";
+  const legacyMarketing =
+    pathname === "/" || pathname === "/marketing-archive";
 
   if (minimal) {
     return (
@@ -25,7 +26,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (marketingArchive) {
+  if (legacyMarketing) {
     return (
       <>
         <Header luxury />
