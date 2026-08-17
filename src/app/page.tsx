@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import FamilyOfficeHome from "@/components/home/FamilyOfficeHome";
+import HomePageContent from "@/components/home/HomePageContent";
 
 export const metadata: Metadata = {
-  title: "MDC Capital Holdings | Family Office & Operating Holdings",
+  title: "MDC Capital Holdings | Private Operating Holdings",
   description:
-    "MDC Capital Holdings is a private holding company and family office–style platform focused on long-term stewardship of operating businesses.",
+    "MDC Capital Holdings is a private operating holding company focused on long-term capital, operational leadership, and durable growth.",
 };
 
 export default function HomePage() {
-  return <FamilyOfficeHome />;
+  return <HomePageContent />;
 }

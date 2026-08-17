@@ -1,12 +1,6 @@
-import type { Metadata } from "next";
-import HomePageContent from "@/components/home/HomePageContent";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Marketing site archive | MDC Capital Holdings",
-  description: "Archived marketing homepage (not indexed).",
-  robots: { index: false, follow: false },
-};
-
+/** Archived path — homepage is the legacy Wayne site again. */
 export default function MarketingArchivePage() {
-  return <HomePageContent />;
+  redirect("/");
 }
