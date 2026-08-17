@@ -37,5 +37,5 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host ""
 Write-Host "Done. Open https://mdccapitalholdings.com" -ForegroundColor Green
-Write-Host "Look for 'Business information' in the hero (A2P site)." -ForegroundColor Green
+Write-Host "Homepage should be the black/gold Wayne marketing site." -ForegroundColor Green
 Write-Host ""

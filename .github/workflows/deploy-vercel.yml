@@ -5,6 +5,10 @@ on:
     branches: [master]
   workflow_dispatch:
 
+env:
+  VERCEL_ORG_ID: team_9lvYRnN3im5hYbbox26b6FvZ
+  VERCEL_PROJECT_ID: prj_t4kHJj15MNubkWXElBGcM2gyKPDp
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -25,9 +29,23 @@ jobs:
         run: npm run build
 
       - name: Deploy to Vercel (production)
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: "--prod"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_DEPLOY_HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          set -e
+          if [ -n "$VERCEL_DEPLOY_HOOK" ]; then
+            echo "Deploying via Vercel Deploy Hook..."
+            curl -f -X POST "$VERCEL_DEPLOY_HOOK"
+            echo "Deploy hook triggered."
+            exit 0
+          fi
+          if [ -n "$VERCEL_TOKEN" ]; then
+            echo "Deploying via Vercel CLI..."
+            npx vercel deploy --prod --yes \
+              --token "$VERCEL_TOKEN" \
+              --scope lowdifficultys-projects
+            exit 0
+          fi
+          echo "::error::Add GitHub secret VERCEL_DEPLOY_HOOK (easiest) or VERCEL_TOKEN. See docs/DEPLOY.md"
+          exit 1

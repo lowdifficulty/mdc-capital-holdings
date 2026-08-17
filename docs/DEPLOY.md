@@ -1,43 +1,38 @@
-# One-time setup so `git push` deploys https://mdccapitalholdings.com
+# Deploy https://mdccapitalholdings.com
 
-GitHub Actions workflow: `.github/workflows/deploy-vercel.yml`
+Code on **`master`** is the source of truth. Production updates only after a **Vercel production deploy** (push alone is not enough unless auto-deploy is configured).
 
-## 1. Get three values from Vercel
+## Fastest: Deploy Hook (recommended for GitHub Actions)
 
-1. Open [Vercel Dashboard](https://vercel.com/dashboard) → your **mdc-capital-holdings** project.
-2. **Settings → General** → copy **Project ID**.
-3. **Settings → General** → copy **Team / Personal ID** (Org ID).
-4. **Account Settings → Tokens** → create a token named `github-deploy` → copy it.
+1. [Vercel Dashboard](https://vercel.com/dashboard) → **mdc-capital-holdings** → **Settings → Git → Deploy Hooks**
+2. Create hook: name `github-master`, branch **`master`**, copy the URL.
+3. GitHub repo → **Settings → Secrets and variables → Actions** → **New repository secret**
+   - Name: `VERCEL_DEPLOY_HOOK`
+   - Value: the hook URL
+4. **Actions** → **Deploy production (Vercel)** → **Run workflow** (or push to `master`).
 
-## 2. Add GitHub secrets
+## Alternative: Vercel token
 
-Repo: **lowdifficulty/mdc-capital-holdings** → **Settings → Secrets and variables → Actions → New repository secret**
+Add GitHub secret **`VERCEL_TOKEN`** ([create token](https://vercel.com/account/tokens)). The workflow uses org `lowdifficultys-projects` and project `mdc-capital-holdings`.
 
-| Secret name | Value |
-|-------------|--------|
-| `VERCEL_TOKEN` | token from step 1 |
-| `VERCEL_ORG_ID` | org/team id |
-| `VERCEL_PROJECT_ID` | project id |
-
-## 3. Run deploy
-
-**Actions** tab → **Deploy production (Vercel)** → **Run workflow** → branch `master`.
-
-Or push any commit to `master` (future deploys are automatic).
-
-## 4. Confirm
-
-Open https://mdccapitalholdings.com — hero should say **Business information**, not “From Small Business”.
-
-## Local preview (your PC only)
+## Deploy from your PC (Windows)
 
 ```powershell
 cd "C:\Users\Admin\MDC Capital Holdings"
 git pull origin master
-npm install
-npm run dev:clean
+npx vercel login
+npx vercel deploy --prod
 ```
 
-Open http://localhost:3001 and **leave the terminal open**.
+Or: `powershell -ExecutionPolicy Bypass -File scripts/deploy-prod.ps1`
 
-If `dev:clean` errors, run `npm run dev` and paste the error text.
+## Confirm
+
+Open https://mdccapitalholdings.com — homepage should be the **black/gold Wayne** marketing site (same as http://localhost:3002).
+
+## Local dev
+
+| Command | URL |
+|---------|-----|
+| `npm run dev:legacy:clean` | http://localhost:3002 — legacy homepage |
+| `npm run dev:clean` | http://localhost:3001 — admin portal + full app |
